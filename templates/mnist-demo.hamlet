@@ -17,6 +17,8 @@
             var x = "black",
                 y = 2;
             
+            var imageData = [];
+
             function init() {
                 canvas = document.getElementById('canvas');
                 ctx = canvas.getContext("2d");
@@ -48,11 +50,8 @@
             }
             
             function erase() {
-                var m = confirm("Want to clear" + canvas.offsetLeft + "," + canvas.offsetTop);
-                if (m) {
-                    ctx.clearRect(0, 0, w, h);
-                    document.getElementById("canvasimg").style.display = "none";
-                }
+                ctx.clearRect(0, 0, w, h);
+                document.getElementById("canvasimg").style.display = "none";
             }
             
             function findxy(res, e) {
@@ -75,6 +74,9 @@
                 }
                 if (res == 'up' || res == "out") {
                     flag = false;
+                    imageData = ctx.getImageData(0,0,w,h);
+                    console.log("data");
+                    console.log(imageData.data);
                 }
                 if (res == 'move') {
                     if (flag) {
