@@ -74,9 +74,9 @@
                 }
                 if (res == 'up' || res == "out") {
                     flag = false;
-                    imageData = ctx.getImageData(0,0,w,h);
-                    console.log("data");
-                    console.log(imageData.data);
+                    $# imageData = ctx.getImageData(0,0,w,h);
+                    $# console.log("data");
+                    $# console.log(imageData.data);
                 }
                 if (res == 'move') {
                     if (flag) {
@@ -93,6 +93,12 @@
         <div class="clearfix"></div>
         <body onload="init()">
             <input type="button" value="clear" id="clr" size="23" onclick="erase()">
+        <form .form-horizontal ##{canvasFormId}>
+
+            <button .btn.btn-primary type="submit">
+
+            <ul ##{canvasDataId}>
+            $# <textarea #"mnistRes" rows="2" width="200" placeholder="draw a number to be classified." style="colofr: #ffffff;" required></textarea>
         
 
             
@@ -137,8 +143,8 @@
                             A Widget's Html, Css and Javascript are separated in three files with the
                             <tt>.hamlet</tt>, <tt>.lucius</tt> and <tt>.julius</tt> extensions.
 
-                        $# <li .list-group-item ##{aDomId}>
-                        $#     If you had javascript enabled then you wouldn't be seeing this.
+                        <li .list-group-item ##{aDomId}>
+                            If you had javascript enabled then you wouldn't be seeing this.
 
     <hr>
 

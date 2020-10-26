@@ -20,9 +20,25 @@ getMnistR :: Handler Html
 getMnistR = do
     let handlerName = "getMnistR" :: Text
     defaultLayout $ do
-        -- let aDomId <- newIdent
+        let (canvasDataId, canvas, canvasFormId) = canvasIds
+        aDomId <- newIdent
         -- setTitle fot tab title
+        
         setTitle "MNIST Demo"
         $(widgetFile "mnist-demo")
 
+-- postMnistR :: Handler Html
+-- postMnistR = do
+--     let handlerName = "postMnistR" :: Text
+--         submission = case result of
+--             FormSuccess res -> Just res
+--             _ -> Nothing
 
+--     defaultLayout $ do
+--         let (commentFormId, commentTextareaId, commentListId) = commentIds
+--         aDomId <- newIdent
+--         setTitle "Functional Neural Network!"
+--         $(widgetFile "homepage")
+
+canvasIds :: (Text, Text, Text)
+canvasIds = ("js-canvasDataId", "js-canvas", "js-canvasFormId")
