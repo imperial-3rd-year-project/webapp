@@ -25,7 +25,7 @@ $(function() {
       type: 'POST',
       contentType: "application/json",
       data: JSON.stringify({
-        canvasData : canvasData),
+        canvasData : canvasData,
       }),
       success: function (data) {
         /*var newNode = $("<li></li>");
