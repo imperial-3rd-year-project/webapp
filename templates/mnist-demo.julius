@@ -1,43 +1,111 @@
 document.getElementById(#{toJSON aDomId}).innerHTML = "This text was added by the Javascript part of the homepage widget.";
 
+var canvas, ctx, flag = false,
+		prevX = 0,
+		currX = 0,
+		prevY = 0,
+		currY = 0,
+		dot_flag = false;
 
-$(function() {
-  $("##{rawJS canvasFormId}").submit(function(event) {
-    event.preventDefault();
-    var canvas = $("##{rawJS canvas}");
-    var w = canvas.width;
-    var h = canvas.height;
-    var ctx = document.getElementById('canvas').getContext("2d");
-    var canvasData = ctx.getImageData(0,0,200,200).data;
-    console.log("cdata: ");
-    console.log(canvasData);
-    
+var x = "black",
+		y = 3;
 
-    // (Browsers that enforce the "required" attribute on the textarea won't see this alert)
-    /*if (!message) {
-      alert("Please fill out the comment form first.");
-      return;
-    }*/
+var imageData = [];
 
-    // Make an AJAX request to the server to create a new comment
-    $.ajax({
-      url: '@{MnistResponseR}',
-      type: 'POST',
-      contentType: "application/json",
-      data: JSON.stringify({
-        canvasData : canvasData,
-      }),
-      success: function (data) {
-        /*var newNode = $("<li></li>");
-        newNode.text(data.canvasData);*/
-        console.log("data ?");
-        console.log(data);
-        /*$("##{rawJS canvasDataId}").append(newNode);*/
-      },
-      error: function (data) {
-        console.log("Error creating comment: " + data.canvasData);
-      },
-    });
+window.onload = function() {
+	canvas = document.getElementById(#{toJSON canvasId});
+	ctx = canvas.getContext("2d");
+	w = canvas.width;
+	h = canvas.height;
 
-  });
-});
+	canvas.addEventListener("mousemove", function (e) {
+			findxy('move', e)
+	}, false);
+	canvas.addEventListener("mousedown", function (e) {
+			findxy('down', e)
+	}, false);
+	canvas.addEventListener("mouseup", function (e) {
+			findxy('up', e)
+	}, false);
+	canvas.addEventListener("mouseout", function (e) {
+			findxy('out', e)
+	}, false);
+};
+
+
+function draw() {
+		ctx.beginPath();
+		ctx.moveTo(prevX, prevY);
+		ctx.lineTo(currX, currY);
+		ctx.strokeStyle = x;
+		ctx.lineWidth = y;
+		ctx.stroke();
+		ctx.closePath();
+}
+
+function erase() {
+		ctx.clearRect(0, 0, w, h);
+}
+
+function findxy(res, e) {
+		if (res == 'down') {
+				prevX = currX;
+				prevY = currY;
+				const {x, y} = canvas.getBoundingClientRect();
+				currX = e.clientX - x;
+				currY = e.clientY - y;
+
+				flag = true;
+				dot_flag = true;
+				if (dot_flag) {
+						ctx.beginPath();
+						ctx.fillStyle = x;
+						ctx.fillRect(currX, currY, 2, 2);
+						ctx.closePath();
+						dot_flag = false;
+				}
+		}
+		if (res == 'up' || res == "out") {
+				flag = false;
+				sendCanvasBytes(e);
+		}
+		if (res == 'move') {
+				if (flag) {
+						prevX = currX;
+						prevY = currY;
+						const {x, y} = canvas.getBoundingClientRect();
+						currX = e.clientX - x;
+						currY = e.clientY - y;
+						draw();
+				}
+		}
+}
+
+function sendCanvasBytes(event) {
+	event.preventDefault();
+	canvasData = ctx.getImageData(0,0,w,h);
+	console.log("data");
+	console.log(canvasData.data);
+
+	var postData = JSON.stringify({
+			canvasData : canvasData,
+		});
+
+	$.ajax({
+		url: '@{MnistResponseR}',
+		type: 'POST',
+		contentType: "application/json",
+		data: postData,
+		success: function (data) {
+			console.log("data ?");
+			console.log(data);
+			document.getElementById(#{toJSON mnistDataId}).innerHTML = data;
+
+		},
+		error: function (data) {
+			console.log("Error creating comment: " + data.canvasData);
+		},
+	});
+}
+
+

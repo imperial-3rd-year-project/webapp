@@ -20,7 +20,7 @@ getMnistR :: Handler Html
 getMnistR = do
     let handlerName = "getMnistR" :: Text
     defaultLayout $ do
-        let (canvasDataId, canvas, canvasFormId) = canvasIds
+        let (mnistDataId, canvasId) = canvasIds
         aDomId <- newIdent
         -- setTitle fot tab title
         
@@ -40,5 +40,5 @@ getMnistR = do
 --         setTitle "Functional Neural Network!"
 --         $(widgetFile "homepage")
 
-canvasIds :: (Text, Text, Text)
-canvasIds = ("js-canvasDataId", "js-canvas", "js-canvasFormId")
+canvasIds :: (Text, Text)
+canvasIds = ("js-mnistDataId", "js-canvasId")
