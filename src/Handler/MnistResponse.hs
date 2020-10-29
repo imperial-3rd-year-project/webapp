@@ -6,10 +6,12 @@
 
 module Handler.MnistResponse where
 
-import Data.Vector.Storable                   (Vector)
+import qualified Data.Vector.Storable  as V
 import Data.Vector.Storable.ByteString        (byteStringToVector)
 import Grenade.Canvas.Helpers
 import Import                          hiding (Vector)
+import Data.ByteString.Base64
+import Data.Either (fromRight)
 
 newtype MnistResponse = MnistResponse {unMnistResponse :: Text}
   deriving Show
@@ -19,6 +21,11 @@ postMnistResponseR :: Handler Value
 postMnistResponseR = do
   response <- requireCheckJsonBody
   net      <- liftIO $ netLoad "/home/king/Downloads/slack/mnistModel"
-  let image = byteStringToVector $ encodeUtf8 $ unMnistResponse response :: Vector Word8
+  let image'        = encodeUtf8 $ unMnistResponse response
+      Right image'' = decode image'
+      image         = byteStringToVector image''
+  traceM $  show $ V.length image
+  --liftIO $ Prelude.putStrLn "aaaaaa help me please"
+  --liftIO $ Prelude.putStrLn $ show $ decode image'
   return $ toJSON $ runNet' net image
 

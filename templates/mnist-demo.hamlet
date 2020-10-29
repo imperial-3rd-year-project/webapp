@@ -6,7 +6,7 @@
             <h2>
                 Try out below.
 
-        <canvas ##{canvasId} width="196" height="196" style="background-color: #ffffff;">
+        <canvas ##{canvasId} width="280" height="280" style="background-color: #ffffff;">
         <div class="clearfix"></div>
         <body>
             <input type="button" value="clear" id="clr" size="23" onclick="erase()">

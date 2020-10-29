@@ -7,8 +7,8 @@ var canvas, ctx, flag = false,
 		currY = 0,
 		dot_flag = false;
 
-var x = "black",
-		y = 3;
+const colour = "black",
+		  thickness = 10;
 
 var imageData = [];
 
@@ -35,12 +35,15 @@ window.onload = function() {
 
 function draw() {
 		ctx.beginPath();
-		ctx.moveTo(prevX, prevY);
-		ctx.lineTo(currX, currY);
-		ctx.strokeStyle = x;
-		ctx.lineWidth = y;
-		ctx.stroke();
-		ctx.closePath();
+		//ctx.moveTo(prevX, prevY);
+		//ctx.lineTo(currX, currY);
+		//ctx.strokeStyle = colour;
+		//ctx.lineWidth = thickness;
+		//ctx.stroke();
+		//ctx.closePath();
+    ctx.arc(currX, currY, thickness, 0, 6);
+    ctx.fill();
+    ctx.closePath();
 }
 
 function erase() {
@@ -54,18 +57,20 @@ function findxy(res, e) {
 				const {x, y} = canvas.getBoundingClientRect();
 				currX = e.clientX - x;
 				currY = e.clientY - y;
+        //ctx.beginPath();
 
 				flag = true;
-				dot_flag = true;
-				if (dot_flag) {
-						ctx.beginPath();
-						ctx.fillStyle = x;
-						ctx.fillRect(currX, currY, 2, 2);
-						ctx.closePath();
-						dot_flag = false;
-				}
+				//dot_flag = true;
+				//if (dot_flag) {
+				//		ctx.beginPath();
+				//		ctx.fillStyle = colour;
+				//		ctx.fillRect(currX, currY, 2, 2);
+				//		ctx.closePath();
+				//		dot_flag = false;
+				//}
 		}
 		if (res == 'up' || res == "out") {
+        ctx.closePath();
 				flag = false;
 				sendCanvasBytes(e);
 		}
@@ -82,14 +87,34 @@ function findxy(res, e) {
 }
 
 function sendCanvasBytes(event) {
-	event.preventDefault();
-	const canvasData = ctx.getImageData(0,0,w,h);
-  const canvasBuffer = canvasData.data.buffer;
-  const canvasDataString = new TextDecoder("utf-8").decode(canvasBuffer);
-	console.log("data");
-	console.log(canvasData.data);
+  function base64EncodeUnicode(str) {
+      // First we escape the string using encodeURIComponent to get the UTF-8 encoding of the characters, 
+      // then we convert the percent encodings into raw bytes, and finally feed it to btoa() function.
+      utf8Bytes = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+              return String.fromCharCode('0x' + p1);
+      });
+  
+      return btoa(utf8Bytes);
+  }
 
-	let postData = JSON.stringify(canvasDataString);
+
+	event.preventDefault();
+	//const canvasData = ctx.getImageData(0,0,w,h);
+  //const canvasBuffer = canvasData.data.buffer;
+  //const canvasDataString = new TextDecoder("ascii").decode(canvasBuffer);
+  //const savnac = new TextEncoder("utf-8").encode(canvasDataString);
+	//console.log("data");
+	//console.log(canvasData.data);
+  //console.log(base64EncodeUnicode(canvasDataString));
+  //console.log(savnac);
+  //console.log(canvasBuffer.toString());
+
+  const canvasData = ctx.getImageData(0,0,w,h);
+  const canvasBuffer = canvasData.data.buffer;
+  const base64Canvas = btoa(String.fromCharCode.apply(null, canvasData.data));
+  console.log(base64Canvas);
+
+	let postData = JSON.stringify(base64Canvas);
 
 	$.ajax({
 		url: '@{MnistResponseR}',
