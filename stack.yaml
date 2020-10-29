@@ -37,12 +37,12 @@ packages:
 #
 # extra-deps:
 # - acme-missiles-0.3
-- git: https://github.com/commercialhaskell/stack.git
-  commit: 61f8151fe9102a4a2a69fa6947e9980ad05693da
+#- git: https://github.com/commercialhaskell/stack.git
+#  commit: 61f8151fe9102a4a2a69fa6947e9980ad05693da
 #
-#extra-deps:
-#  - git: git@gitlab.doc.ic.ac.uk:g206002126/grenade.git
-#    commit: 7010d3319dedb91f930b7d69ab15b027824654cd
+extra-deps:
+  - git: git@gitlab.doc.ic.ac.uk:g206002126/grenade.git
+    commit: 61f8151fe9102a4a2a69fa6947e9980ad05693da
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
