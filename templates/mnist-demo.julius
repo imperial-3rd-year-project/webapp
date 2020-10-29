@@ -83,13 +83,13 @@ function findxy(res, e) {
 
 function sendCanvasBytes(event) {
 	event.preventDefault();
-	canvasData = ctx.getImageData(0,0,w,h);
+	const canvasData = ctx.getImageData(0,0,w,h);
+  const canvasBuffer = canvasData.data.buffer;
+  const canvasDataString = new TextDecoder("utf-8").decode(canvasBuffer);
 	console.log("data");
 	console.log(canvasData.data);
 
-	var postData = JSON.stringify({
-			canvasData : canvasData,
-		});
+	let postData = JSON.stringify(canvasDataString);
 
 	$.ajax({
 		url: '@{MnistResponseR}',

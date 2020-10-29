@@ -38,6 +38,8 @@ dependencies:
 - case-insensitive
 - wai
 - foreign-store
+- bytestring-to-vector
+- grenade ==0.1.1
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.

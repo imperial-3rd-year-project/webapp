@@ -1,22 +1,24 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings
+           , DeriveGeneric
+           , GeneralisedNewtypeDeriving
+           , DerivingStrategies
+#-}
+
 module Handler.MnistResponse where
 
-import Import
-import Data.Aeson
-import Yesod.Core.Json
-import Data.ByteString
+import Data.Vector.Storable                   (Vector)
+import Data.Vector.Storable.ByteString        (byteStringToVector)
+import Grenade.Canvas.Helpers
+import Import                          hiding (Vector)
 
--- newtype MnistResponse = MnistResponse ByteString
-
--- instance ToJSON MnistResponse where
---     toJSON (MnistResponse t) = object ["canvasData" .= t]
--- instance FromJSON MnistResponse where
---     parseJSON = withObject "MnistResponse" $ \o -> MnistResponse <$> o .: "canvasData"
+newtype MnistResponse = MnistResponse {unMnistResponse :: Text}
+  deriving Show
+  deriving newtype (FromJSON, ToJSON)
 
 postMnistResponseR :: Handler Value
 postMnistResponseR = do
-    -- requireCheckJsonBody will parse the request body into the appropriate type, or return a 400 status code if the request JSON is invalid.
-    response <- requireCheckJsonBody :: Handler Value
-    return "hello"
-    -- returnJson response
+  response <- requireCheckJsonBody
+  net      <- liftIO $ netLoad "/home/king/Downloads/slack/mnistModel"
+  let image = byteStringToVector $ encodeUtf8 $ unMnistResponse response :: Vector Word8
+  return $ toJSON $ runNet' net image
 
