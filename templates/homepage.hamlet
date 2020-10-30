@@ -12,9 +12,27 @@
             <div .col-lg-12>
                 <div .page-header>
                     <h1 #start>Tensorflow? More like Tensorno.
-                    <p> 
-                    Grenade brings composable, statically typed neural networks to Haskell.
+                    <p>
+                    Grenade brings composable, statically typed neural networks to Haskell. In particular, this means that networks are defined as types, with shapes checked at compile time, and networks can be used as layers in other networks.
 
+                    For example, we can define a simple network as follows:
 
-   <hr>
+                    <pre>type FL i o = Network '[ FullyConnected i o, Logit ] '[ 'D1 i, 'D1 o, 'D1 o]
+                    <p>
+                        and use it within a more complex network:
+
+                    <pre>type Net = Network '[ FL 288 80, FL 80 10 ] '[ D1 288, 'D1 80, 'D1 10 ]
+
+                    <p>
+                        Training networks is easily configurable, allowing you to specify parameters such as the optimizer (SGD or Adam) and the mini-batch size.
+                    <pre>
+                            data TrainingOptions = forall opt. TrainingOptions<br>
+                                { optimizer      :: Optimizer opt
+                                , batchSize      :: Int
+                                , validationFreq :: Int
+                                , loss           :: Metric
+                                , verbose        :: VerboseOptions
+                                , metrics        :: [Metric]
+                                }
+            <hr>
 

@@ -12,9 +12,6 @@
             <input type="button" value="clear" id="clr" size="23" onclick="erase()">
 
         <p ##{mnistDataId}>Draw a number to test MNIST</p>
-        
-
-            
 
 
 <div .container>
@@ -30,5 +27,6 @@
                         The MNIST dataset consists of over 60,000 images of handwritten digits. The type of the network used here is defined as a series of convolutions and fully connected layers, with the shapes each layer transforms specified as a type level list. By using dependent typing, errors such as shape mismatch can be caught at compile time.
 
 <pre> type MNIST = Network <br>    '[ Convolution 1 10 5 5 1 1<br>     , Pooling 2 2 2 2<br>     , Relu<br>     , Convolution 10 16 5 5 1 1<br>     , Pooling 2 2 2 2 <br>     , Reshape <br>     , Relu <br>     , FullyConnected 256 80 <br>     , Logit <br>     , FullyConnected 80 10 <br>     , Logit ] <br>    '[ 'D2 28 28<br>     , 'D3 24 24 10<br>     , 'D3 12 12 10<br>     , 'D3 12 12 10<br>     , 'D3 8 8 16<br>     , 'D3 4 4 16<br>     , 'D1 256<br>     , 'D1 256<br>     , 'D1 80<br>     , 'D1 80<br>     , 'D1 10<br>     , 'D1 10]
+
 
 
