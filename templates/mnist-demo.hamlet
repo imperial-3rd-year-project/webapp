@@ -2,31 +2,46 @@
     <div .container>
         <div .row>
             <h1 .header>
-                MNIST Demonstration
+                MNIST
             <h2>
-                Try out below.
-
-        <canvas ##{canvasId} width="224" height="224" style="background-color: #ffffff;">
-        <div class="clearfix"></div>
-        <body>
-            <input type="button" value="clear" id="clr" size="23" onclick="erase()">
-
-        <p ##{mnistDataId}>Draw a number to test MNIST</p>
+                Recognising hand drawn digits
+            <canvas ##{canvasId} width="280" height="280" style="background-color: #ffffff;">
+            <div class="clearfix"></div>
+            <div>
+                <input type="button" class="btn btn-primary" value="Clear" id="clr" size="23" onclick="erase()">
+            <p ##{mnistDataId}>Draw a number to test MNIST</p>
 
 
 <div .container>
-    <!-- Starting
-        ================================================== -->
     <div .bs-docs-section>
         <div .row>
             <div .col-lg-12>
                 <div .page-header>
-                    <h2 #start>Handwritten Digit Recognition
+                    <h2>Handwritten Digit Recognition
 
                     <p>
-                        The MNIST dataset consists of over 60,000 images of handwritten digits. The type of the network used here is defined as a series of convolutions and fully connected layers, with the shapes each layer transforms specified as a type level list. By using dependent typing, errors such as shape mismatch can be caught at compile time.
-
-<pre> type MNIST = Network <br>    '[ Convolution 1 10 5 5 1 1<br>     , Pooling 2 2 2 2<br>     , Relu<br>     , Convolution 10 16 5 5 1 1<br>     , Pooling 2 2 2 2 <br>     , Reshape <br>     , Relu <br>     , FullyConnected 256 80 <br>     , Logit <br>     , FullyConnected 80 10 <br>     , Logit ] <br>    '[ 'D2 28 28<br>     , 'D3 24 24 10<br>     , 'D3 12 12 10<br>     , 'D3 12 12 10<br>     , 'D3 8 8 16<br>     , 'D3 4 4 16<br>     , 'D1 256<br>     , 'D1 256<br>     , 'D1 80<br>     , 'D1 80<br>     , 'D1 10<br>     , 'D1 10]
+                        The MNIST dataset consists of over 60,000 images of handwritten digits.
+                        The type of the network used here is defined as a series of convolutions
+                        and fully connected layers, with the shapes each layer transforms specified
+                        as a type level list.
+                    <pre>
+                        <code .language-haskell>
+                            \type MNIST = Network
+                            \    '[ Convolution 1 10 5 5 1 1
+                            \     , Pooling 2 2 2 2, Relu
+                            \     , Convolution 10 16 5 5 1 1
+                            \     , Pooling 2 2 2 2
+                            \     , Reshape, Relu
+                            \     , FullyConnected 256 80, Logit
+                            \     , FullyConnected 80 10, Logit ]
+                            \    '[ 'D2 28 28                  -- Input
+                            \     , 'D3 24 24 10,              -- Convolution  
+                            \     , 'D3 12 12 10, 'D3 12 12 10 -- Pooling, Relu
+                            \     , 'D3 8 8 16                 -- Convolution
+                            \     , 'D3 4 4 16                 -- Pooling
+                            \     , 'D1 256, 'D1 256           -- Reshape, Relu
+                            \     , 'D1 80, 'D1 80             -- FullyConnected, Logit
+                            \     , 'D1 10, 'D1 10 ]           -- FullyConnected, Logit
 
 
 
