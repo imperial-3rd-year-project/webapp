@@ -1,0 +1,29 @@
+<div .masthead>
+    <div .container>
+        <div .row>
+            <h1 .header>
+                Write your own neural network
+            <h2>
+                Try out below.
+
+        
+
+            
+
+
+<div .container>
+    <!-- Starting
+        ================================================== -->
+    <form .form-horizontal ##{codeFormId}>
+        <div .field>
+            <textarea rows="6" ##{codeTextAreaId} required>2 + 2</textarea>
+
+        <button .btn.btn-primary type=submit>
+            Run code
+
+        <div .field>
+            <textarea readonly rows="6" ##{consoleTextAreaId} placeholder="some output here..." required></textarea>
+
+
+
+

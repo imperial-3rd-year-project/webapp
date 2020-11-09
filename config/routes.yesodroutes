@@ -13,3 +13,7 @@
 /response MnistResponseR POST
 
 /mnist MnistR GET 
+
+/tutorial TutorialR GET
+
+/runcode RunCodeR POST

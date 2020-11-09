@@ -27,18 +27,5 @@ getMnistR = do
         setTitle "MNIST Demo"
         $(widgetFile "mnist-demo")
 
--- postMnistR :: Handler Html
--- postMnistR = do
---     let handlerName = "postMnistR" :: Text
---         submission = case result of
---             FormSuccess res -> Just res
---             _ -> Nothing
-
---     defaultLayout $ do
---         let (commentFormId, commentTextareaId, commentListId) = commentIds
---         aDomId <- newIdent
---         setTitle "Functional Neural Network!"
---         $(widgetFile "homepage")
-
 canvasIds :: (Text, Text)
 canvasIds = ("js-mnistDataId", "js-canvasId")
