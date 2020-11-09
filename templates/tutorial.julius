@@ -19,6 +19,7 @@ $(function() {
       data: postData,
       success: function (data) {
         console.log(data);
+        document.getElementById(#{toJSON consoleTextAreaId}).innerHTML = data
       },
       error: function (data) {
         console.log("Error creating comment: " + data);
