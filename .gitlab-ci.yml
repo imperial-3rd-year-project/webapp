@@ -1,0 +1,16 @@
+stages:
+  - build
+  - test
+
+default:
+  before_script:
+    - cabal update
+
+build:
+  stage: build
+  script: cabal build
+
+test: 
+  stage: test
+  script: cabal test --enable-tests --test-show-details=streaming --test-option=--color
+
