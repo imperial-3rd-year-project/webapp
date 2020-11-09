@@ -20,3 +20,4 @@ cabal.sandbox.config
 *~
 \#*
 web-app.cabal
+node_modules/

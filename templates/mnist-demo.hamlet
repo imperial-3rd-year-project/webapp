@@ -5,7 +5,7 @@
                 MNIST
             <h2>
                 Recognising hand drawn digits
-            <canvas ##{canvasId} width="280" height="280" style="background-color: #ffffff;">
+            <canvas ##{canvasId} width="140" height="140" style="background-color: #ffffff;">
             <div class="clearfix"></div>
             <div>
                 <input type="button" class="btn btn-primary" value="Clear" id="clr" size="23" onclick="erase()">

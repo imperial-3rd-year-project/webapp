@@ -11,6 +11,7 @@ import Grenade.Assets.Paths
 import Grenade.Demos.MNIST
 import Import                          hiding (Vector)
 import Data.ByteString.Base64
+import qualified Debug.Trace as DB
 
 newtype MnistResponse = MnistResponse {unMnistResponse :: Text}
   deriving Show
