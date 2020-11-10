@@ -1,0 +1,72 @@
+let canvas, ctx, flag = false,
+		prevX = 0,
+		currX = 0,
+		prevY = 0,
+		currY = 0;
+
+const colour = "black",
+	  thickness = 5;
+
+let imageData = [];
+const sf = 2;
+const dims = "280px";
+
+window.onload = function() {
+	canvas = document.getElementById(#{toJSON canvasId});
+    canvas.style.width = dims;
+    canvas.style.height = dims;
+	ctx = canvas.getContext("2d");
+	w = canvas.width;
+	h = canvas.height;
+
+	canvas.addEventListener("mousemove", function (e) {
+		findxy('move', e)
+	}, false);
+	canvas.addEventListener("mousedown", function (e) {
+		findxy('down', e)
+	}, false);
+	canvas.addEventListener("mouseup", function (e) {
+		findxy('up', e)
+	}, false);
+	canvas.addEventListener("mouseout", function (e) {
+		findxy('out', e)
+	}, false);
+};
+
+function sendCanvasBytes(event) {
+    function base64EncodeUnicode(str) {
+        // First we escape the string using encodeURIComponent to get the UTF-8 encoding of the characters, 
+        // then we convert the percent encodings into raw bytes, and finally feed it to btoa() function.
+        utf8Bytes = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+            return String.fromCharCode('0x' + p1);
+        });
+  
+        return btoa(utf8Bytes);
+    }
+
+
+    event.preventDefault();
+    const canvasData = ctx.getImageData(0,0,w,h);
+    const canvasBuffer = canvasData.data.buffer;
+    const base64Canvas = btoa(String.fromCharCode.apply(null, canvasData.data));
+
+	let postData = JSON.stringify(base64Canvas);
+
+	$.ajax({
+		url: '@{MnistResponseR}',
+		type: 'POST',
+		contentType: "application/json",
+		data: postData,
+		success: function (data) {
+			console.log("data ?");
+			console.log(data);
+			document.getElementById(#{toJSON mnistDataId}).innerHTML = data;
+
+		},
+		error: function (data) {
+			console.log("Error creating comment: " + data.canvasData);
+		},
+	});
+}
+
+
