@@ -5,12 +5,16 @@ let canvas, ctx, flag = false,
 		currY = 0;
 
 const colour = "black",
-	  thickness = 10;
+	  thickness = 5;
 
 let imageData = [];
+const sf = 2;
+const dims = "280px";
 
 window.onload = function() {
 	canvas = document.getElementById(#{toJSON canvasId});
+    canvas.style.width = dims;
+    canvas.style.height = dims;
 	ctx = canvas.getContext("2d");
 	w = canvas.width;
 	h = canvas.height;
@@ -36,10 +40,10 @@ function draw() {
     const lastX = prevX;
     const lastY = prevY;
 
-    let x1 = mouseX,
-        x2 = lastX,
-        y1 = mouseY,
-        y2 = lastY;
+    let x1 = mouseX / sf,
+        x2 = lastX / sf,
+        y1 = mouseY / sf,
+        y2 = lastY / sf;
 
 
     const steep = Math.abs(y2 - y1) > Math.abs(x2 - x1);
