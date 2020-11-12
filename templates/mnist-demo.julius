@@ -111,10 +111,15 @@ function sendCanvasBytes(event) {
 
   const canvasData = ctx.getImageData(0,0,w,h);
   const canvasBuffer = canvasData.data.buffer;
-  const base64Canvas = btoa(String.fromCharCode.apply(null, canvasData.data));
-  console.log(base64Canvas);
+  // const base64Canvas = btoa(String.fromCharCode.apply(null, canvasData.data));
+  var convertedCanvas = [];
+  canvasData.data.forEach(function(byte) {convertedCanvas.push(String.fromCharCode(byte))});
+  const base64Canvas = btoa(convertedCanvas);
+  //console.log(base64Canvas);
 
 	let postData = JSON.stringify(base64Canvas);
+    console.log("POSTDATA:");
+    console.log(postData);
 
 	$.ajax({
 		url: '@{MnistResponseR}',
@@ -128,7 +133,7 @@ function sendCanvasBytes(event) {
 
 		},
 		error: function (data) {
-			console.log("Error creating comment: " + data.canvasData);
+			console.log("Error creating comment: " + data);
 		},
 	});
 }

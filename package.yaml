@@ -41,10 +41,15 @@ dependencies:
 - bytestring-to-vector
 - grenade
 - base64-bytestring
+- hint
+- temporary 
+- process
+- filepath
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.
 library:
+
   source-dirs: src
   when:
   - condition: (flag(dev)) || (flag(library-only))

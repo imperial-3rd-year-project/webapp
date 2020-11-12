@@ -19,8 +19,9 @@ newtype MnistResponse = MnistResponse {unMnistResponse :: Text}
 
 postMnistResponseR :: Handler Value
 postMnistResponseR = do
+  return "test the circle"
   response <- requireCheckJsonBody
-  net      <- liftIO $ netLoad "/home/king/Downloads/slack/mnistModel"
+  net      <- liftIO $ netLoad "/Users/gabymarfani/Desktop/imperial/year_3/group_project/grenade/models/mnistModel"
   let image'        = encodeUtf8 $ unMnistResponse response
       Right image'' = decode image'
       image         = byteStringToVector image''

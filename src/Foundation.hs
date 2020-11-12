@@ -105,7 +105,12 @@ instance Yesod App where
                     { menuItemLabel = "MNIST Demo"
                     , menuItemRoute = MnistR
                     , menuItemAccessCallback = True
-                    }
+                    },
+                NavbarLeft $ MenuItem
+                    { menuItemLabel = "Tutorial"
+                    , menuItemRoute = TutorialR
+                    , menuItemAccessCallback = True
+                    }    
                 ]
 
         let navbarLeftMenuItems = [x | NavbarLeft x <- menuItems]
