@@ -16,7 +16,7 @@
         ================================================== -->
     <form .form-horizontal ##{codeFormId}>
         <div .field>
-            <textarea rows="6" ##{codeTextAreaId} required>2 + 2</textarea>
+            <textarea rows="6" ##{codeTextAreaId} required>#{exampleCode}</textarea>
 
         <button .btn.btn-primary type=submit>
             Run code

@@ -9,6 +9,19 @@ import Import (Handler, requireCheckJsonBody, Text, returnJson)
 import Data.Aeson
 import Control.Monad
 import Language.Haskell.Interpreter
+import System.IO.Temp 
+import System.Process
+import GHC.IO.Handle
+import System.FilePath.Posix
+
+-- import           Control.Monad
+-- import           Control.Monad.Random
+-- import           GHC.TypeLits
+
+-- import qualified Numeric.LinearAlgebra.Static as SA
+
+-- import           Grenade
+
 
 newtype UserCode = UserCode {unUserCode :: String}
   deriving Show
@@ -18,25 +31,18 @@ postRunCodeR :: Handler Value
 postRunCodeR = do
     -- requireCheckJsonBody will parse the request body into the appropriate type, or return a 400 status code if the request JSON is invalid.
     code <- requireCheckJsonBody :: Handler UserCode
-    -- liftIO $ putStrLn $ (unUserCode code)
-    -- fExpr is a Haskell code supplied by your user as a String
-    -- let fExpr = "2 + 2"
-    let fExpr = (unUserCode code)
-    -- Create an interpreter that runs fExpr
-    r <- liftIO $ runInterpreter $ do
-            setImports ["Prelude"]
-            interpret fExpr (as :: Int)
-    -- run it and get an interface to the function
-    res <- case r of
-        Left err -> return $ toJSON $ "Ups... " ++ (show err)
-        Right f -> return $ toJSON $ (show f)
-        -- Right f -> do 
-        --     let res = (show f) :: String
-        --     return . return $ toJSON $ res
-        -- Right f  -> do
-        --     liftIO $ print $ f [True, False]
-        --     liftIO $ print $ f [True, True]  
+    let contents = (unUserCode code)
+    tmpFile <- liftIO $ writeSystemTempFile "tmpTut.hs" contents
+    let (dir, file) = splitFileName tmpFile
+    liftIO $ print tmpFile
+    (_, hout, _ , _) <- liftIO $ createProcess (shell ("runghc "++ file)){ cwd = Just dir, std_out = CreatePipe}
+    res <- do
+        case hout of 
+            (Just h) -> liftIO $ hGetContents h
+            (Nothing) -> error "ERROR" 
 
-    return res
+    return $ toJSON $ res
+
+
 
 
