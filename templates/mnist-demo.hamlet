@@ -35,7 +35,7 @@
                             \     , FullyConnected 256 80, Logit
                             \     , FullyConnected 80 10, Logit ]
                             \    '[ 'D2 28 28                  -- Input
-                            \     , 'D3 24 24 10,              -- Convolution  
+                            \     , 'D3 24 24 10,              -- Convolution
                             \     , 'D3 12 12 10, 'D3 12 12 10 -- Pooling, Relu
                             \     , 'D3 8 8 16                 -- Convolution
                             \     , 'D3 4 4 16                 -- Pooling

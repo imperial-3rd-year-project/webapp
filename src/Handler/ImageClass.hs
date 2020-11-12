@@ -3,7 +3,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
-module Handler.ImageClass where
+module Handler.ImageClass (
+    getImageClassR,
+  ) where
 
 import Import
 

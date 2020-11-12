@@ -17,4 +17,7 @@
 /tutorial TutorialR GET
 
 /runcode RunCodeR POST
-/webcam ImageClassR GET
+
+/imageclass ImageClassR GET
+
+/webcam WebcamR POST

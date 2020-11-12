@@ -20,7 +20,10 @@ module Application
     ) where
 
 import Control.Monad.Logger                 (liftLoc)
-import Import
+import Import                        hiding (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
+import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
+
+
 import Language.Haskell.TH.Syntax           (qLocation)
 import Network.HTTP.Client.TLS              (getGlobalManager)
 import Network.Wai (Middleware)
@@ -45,6 +48,8 @@ import Handler.MnistResponse
 import Handler.Tutorial
 import Handler.RunCode
 import Handler.ImageClass
+import Handler.Webcam
+import Grenade.Demos.ImageClass
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
@@ -125,6 +130,11 @@ develMain = develMainHelper getApplicationDev
 -- | The @main@ function for an executable running this site.
 appMain :: IO ()
 appMain = do
+
+    -- Start the server for the webcam
+    state <- newMVar newServerState
+    forkIO (startServer state)
+
     -- Get the settings from all relevant sources
     settings <- loadYamlSettingsArgs
         -- fall back to compile-time values, set to [] to require values at runtime
