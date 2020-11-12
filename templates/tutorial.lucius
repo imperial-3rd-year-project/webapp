@@ -1,0 +1,9 @@
+#js-codeTextAreaId {
+    max-height: 800px;
+    overflow: auto;
+}
+
+.field {
+    padding-top: 24px;
+    padding-bottom: 24px;
+}
