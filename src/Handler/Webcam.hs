@@ -18,13 +18,5 @@ newtype MnistResponse = MnistResponse {unMnistResponse :: Text}
 
 postWebcamR :: Handler ()
 postWebcamR = do
-  {--response <- requireCheckJsonBody
-  net      <- liftIO $ loadMNIST
-  let image'        = encodeUtf8 $ unMnistResponse response
-      Right image'' = decode image'
-      image         = byteStringToVector image''
-      json          = toJSON $ runNet' net image 140
-  --}
-  -- liftIO $ openWebcam "/dev/video1" 
   return ()
 

@@ -140,15 +140,22 @@ function sendCanvasBytes(event) {
 
     event.preventDefault();
 
+    /*
+      const canvasData = ctx.getImageData(0,0,w,h);
+      const canvasBuffer = canvasData.data.buffer;
+      var convertedCanvas = [];
+      canvasData.data.forEach(function(byte) {convertedCanvas.push(String.fromCharCode(byte))});
+      const base64Canvas = btoa(convertedCanvas);
+    */
+
     const canvasData = ctx.getImageData(0,0,w,h);
     const canvasBuffer = canvasData.data.buffer;
-    var convertedCanvas = [];
-    canvasData.data.forEach(function(byte) {convertedCanvas.push(String.fromCharCode(byte))});
-    const base64Canvas = btoa(convertedCanvas);
+    const base64Canvas = btoa(String.fromCharCode.apply(null, canvasData.data));
+
 
 	let postData = JSON.stringify(base64Canvas);
-    console.log("POSTDATA:");
-    console.log(postData);
+    //console.log("POSTDATA:");
+    //console.log(postData);
 
 	$.ajax({
 		url: '@{MnistResponseR}',
