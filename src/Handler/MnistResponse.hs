@@ -19,10 +19,9 @@ newtype MnistResponse = MnistResponse {unMnistResponse :: Text}
 
 postMnistResponseR :: Handler Value
 postMnistResponseR = do
-  return "test the circle"
-  response <- requireCheckJsonBody
-  mnistPath <- liftIO $ getPathForNetwork MNIST
-  net       <- liftIO $ loadNetwork mnistPath
+  response  <- requireCheckJsonBody
+  mnistPath <- getPathForNetwork MNIST
+  (net :: MNIST) <- liftIO $ loadNetwork mnistPath
   let image'        = encodeUtf8 $ unMnistResponse response
       Right image'' = decode image'
       image         = byteStringToVector image''
