@@ -13,13 +13,21 @@ import System.IO.Unsafe
 import Control.Monad
 import System.Directory ( getCurrentDirectory )
 
+import System.IO.Temp 
+import System.Process
+import GHC.IO.Handle
+import System.FilePath.Posix
+
+
+
 getTutorialR :: Handler Html
 getTutorialR = do
     let handlerName = "getTutorialR" :: Text
 
     defaultLayout $ do
         let (codeTextAreaId, codeFormId, consoleTextAreaId) = textBoxIds
-        exampleCode <- liftIO $ getExampleCode
+        App {tutorialDir=tmpDir} <- getYesod
+        exampleCode <- liftIO $ getExampleCode tmpDir
 
         aDomId <- newIdent
         -- setTitle fot tab title
@@ -34,7 +42,5 @@ getExampleCode :: IO Text
 getExampleCode = do 
     cwd <- liftIO $ getCurrentDirectory
     contents <- IO.readFile (cwd ++ "/grenade-tutorials/src/circle.hs")
-    return $ pack contents
-    
-    
+   
 

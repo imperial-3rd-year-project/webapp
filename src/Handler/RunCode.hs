@@ -5,7 +5,7 @@
 #-}
 module Handler.RunCode where
 
-import Import (Handler, requireCheckJsonBody, Text, returnJson)
+import Import (Handler, requireCheckJsonBody, Text, returnJson, getYesod)
 import Data.Aeson
 import Control.Monad
 import Language.Haskell.Interpreter
@@ -14,7 +14,6 @@ import System.Process
 import GHC.IO.Handle
 import System.FilePath.Posix
 import System.Directory ( getCurrentDirectory )
-
 -- import           Control.Monad
 -- import           Control.Monad.Random
 -- import           GHC.TypeLits
@@ -45,4 +44,3 @@ postRunCodeR = do
             (Nothing) -> error "ERROR" 
 
     return $ toJSON $ res
-

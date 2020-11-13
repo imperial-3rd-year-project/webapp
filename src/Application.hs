@@ -51,6 +51,11 @@ import Handler.ImageClass
 import Handler.Webcam
 import Grenade.Demos.ImageClass
 
+import System.IO.Temp 
+import System.Process
+import GHC.IO.Handle
+import System.FilePath.Posix
+
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
 -- comments there for more details.
@@ -69,8 +74,8 @@ makeFoundation appSettings = do
     appStatic <-
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
-
-    -- Return the foundation
+    
+   -- Return the foundation
     return App {..}
 
 -- | Convert our foundation to a WAI Application by calling @toWaiAppPlain@ and
@@ -151,7 +156,6 @@ appMain = do
 
     -- Run the application with Warp
     runSettings (warpSettings foundation) app
-
 
 --------------------------------------------------------------
 -- Functions for DevelMain.hs (a way to run the app from GHCi)
