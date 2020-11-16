@@ -30,12 +30,19 @@ resolver: lts-16.19
 #   - wai
 packages:
   - .
-  - ../grenade/
+  - ./grenade/
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
-# extra-deps:
+extra-deps:
+  - repa-3.4.1.4@sha256:13b6513fc68008e4780ea72962bdddcf4dbdfd260bc4e1b7e65705d18d6e9bd5
+  - bindings-libv4l2-0.1@sha256:aae2eafa3a603f7d52baad00b79c5e197b8e00678fc9ffebccd80bcf3ee67263
+  - bindings-linux-videodev2-0.1.0.1@sha256:d0f77629b7150757ca7cee14ebfb734e458bf056cf83c1455a02acbbfe977e88
+  - bindings-posix-1.2.7@sha256:8692c8e237926345e5e15f238461050cf909e5118bb846cf1e82f0668cd314a4
+  - ffmpeg-light-0.13.0@sha256:c0bcad8a64a7be3f3b3b8b94a5963845999df2c89e01f6e4d27ed646ad4bc95f
+  - ioctl-0.0.1@sha256:5861ee9cdf3a2159fce85e3f9213b99bbbb0132e0ff85af7fc23df5215bd2096
+  - network-2.8.0.1@sha256:0f165dffa752d8cde30c2bde86f80609c4f1dc5eeb3182d593041f97839c5b3b
 # - acme-missiles-0.3
 #- git: https://github.com/commercialhaskell/stack.git
 #  commit: 61f8151fe9102a4a2a69fa6947e9980ad05693da
