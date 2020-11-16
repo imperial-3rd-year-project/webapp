@@ -34,7 +34,6 @@ postRunCodeR = do
     code <- requireCheckJsonBody :: Handler UserCode
     let contents = (unUserCode code)
     
-    -- tmpFile <- liftIO $ writeSystemTempFile "tmpTut.hs" contents
     cwd <- liftIO $ getCurrentDirectory
     let cwd' = cwd ++ "/grenade-tutorials"
     let tmpFile = cwd' ++ "/src/circle-user.hs"
