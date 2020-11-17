@@ -26,6 +26,5 @@ postMnistResponseR = do
   let image'        = encodeUtf8 $ unMnistResponse response
       Right image'' = decode image'
       image         = byteStringToVector image''
-  traceM $  show $ V.length image
-  return $ toJSON $ runNet' net image 224
+  return $ toJSON $ runNet' net image 140
 

@@ -154,8 +154,6 @@ function sendCanvasBytes(event) {
 
 
 	let postData = JSON.stringify(base64Canvas);
-    //console.log("POSTDATA:");
-    //console.log(postData);
 
 	$.ajax({
 		url: '@{MnistResponseR}',
@@ -163,13 +161,11 @@ function sendCanvasBytes(event) {
 		contentType: "application/json",
 		data: postData,
 		success: function (data) {
-			console.log("data ?");
 			console.log(data);
 			document.getElementById(#{toJSON mnistDataId}).innerHTML = data;
 
 		},
 		error: function (data) {
-			console.log("Error creating comment: " + data);
 		},
 	});
 }

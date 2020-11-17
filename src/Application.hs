@@ -49,7 +49,7 @@ import Handler.Tutorial
 import Handler.RunCode
 import Handler.ImageClass
 import Handler.Webcam
-import Grenade.Demos.ImageClass
+import Sockets.Webcam
 
 import System.IO.Temp 
 import System.Process

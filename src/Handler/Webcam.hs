@@ -7,7 +7,6 @@
 module Handler.Webcam where
 
 import Data.Vector.Storable.ByteString        (byteStringToVector)
-import Grenade.Demos.ImageClass
 import Import                          hiding (Vector)
 import Data.ByteString.Base64
 import qualified Debug.Trace as DB
