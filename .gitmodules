@@ -1,0 +1,6 @@
+[submodule "grenade-tutorials"]
+	path = grenade-tutorials
+	url = git@gitlab.doc.ic.ac.uk:g206002126/grenade-tutorials.git
+[submodule "grenade"]
+	path = grenade
+	url = git@gitlab.doc.ic.ac.uk:g206002126/grenade.git

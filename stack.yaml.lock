@@ -3,7 +3,56 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: repa-3.4.1.4@sha256:13b6513fc68008e4780ea72962bdddcf4dbdfd260bc4e1b7e65705d18d6e9bd5,3315
+    pantry-tree:
+      size: 2965
+      sha256: d55bf2d7de7ccca003714f36baafb081f4ea115ceb7f78b78e4a2973bd639907
+  original:
+    hackage: repa-3.4.1.4@sha256:13b6513fc68008e4780ea72962bdddcf4dbdfd260bc4e1b7e65705d18d6e9bd5
+- completed:
+    hackage: bindings-libv4l2-0.1@sha256:aae2eafa3a603f7d52baad00b79c5e197b8e00678fc9ffebccd80bcf3ee67263,667
+    pantry-tree:
+      size: 219
+      sha256: 7a45f0d7377a98f1677124d770d3ae3a0c37822eb3fdd2805a978c85835c2a28
+  original:
+    hackage: bindings-libv4l2-0.1@sha256:aae2eafa3a603f7d52baad00b79c5e197b8e00678fc9ffebccd80bcf3ee67263
+- completed:
+    hackage: bindings-linux-videodev2-0.1.0.1@sha256:d0f77629b7150757ca7cee14ebfb734e458bf056cf83c1455a02acbbfe977e88,1031
+    pantry-tree:
+      size: 551
+      sha256: 69556d5f1e63cfcf30c2f571a0107bf84d4eac664ae251092e40e040a72ca145
+  original:
+    hackage: bindings-linux-videodev2-0.1.0.1@sha256:d0f77629b7150757ca7cee14ebfb734e458bf056cf83c1455a02acbbfe977e88
+- completed:
+    hackage: bindings-posix-1.2.7@sha256:8692c8e237926345e5e15f238461050cf909e5118bb846cf1e82f0668cd314a4,1464
+    pantry-tree:
+      size: 1263
+      sha256: 449c448ed348559979ad97eeb3b91357b604c6522919c045e5b9198311e947b1
+  original:
+    hackage: bindings-posix-1.2.7@sha256:8692c8e237926345e5e15f238461050cf909e5118bb846cf1e82f0668cd314a4
+- completed:
+    hackage: ffmpeg-light-0.13.0@sha256:c0bcad8a64a7be3f3b3b8b94a5963845999df2c89e01f6e4d27ed646ad4bc95f,4285
+    pantry-tree:
+      size: 1295
+      sha256: be3e3fdba0a2b4bf4d0c683f548cebf088fe1c0478117ac6e3647fd7173e85b6
+  original:
+    hackage: ffmpeg-light-0.13.0@sha256:c0bcad8a64a7be3f3b3b8b94a5963845999df2c89e01f6e4d27ed646ad4bc95f
+- completed:
+    hackage: ioctl-0.0.1@sha256:5861ee9cdf3a2159fce85e3f9213b99bbbb0132e0ff85af7fc23df5215bd2096,982
+    pantry-tree:
+      size: 355
+      sha256: 42e51444f4ff5035d138e3ad51ded3b161681a0423185153e6a5c622cb116964
+  original:
+    hackage: ioctl-0.0.1@sha256:5861ee9cdf3a2159fce85e3f9213b99bbbb0132e0ff85af7fc23df5215bd2096
+- completed:
+    hackage: network-2.8.0.1@sha256:0f165dffa752d8cde30c2bde86f80609c4f1dc5eeb3182d593041f97839c5b3b,3011
+    pantry-tree:
+      size: 2488
+      sha256: 2dbdda2225969dcd452d983a2ac7e52341e5fc1df76103342c9fac08fc686931
+  original:
+    hackage: network-2.8.0.1@sha256:0f165dffa752d8cde30c2bde86f80609c4f1dc5eeb3182d593041f97839c5b3b
 snapshots:
 - completed:
     size: 532177

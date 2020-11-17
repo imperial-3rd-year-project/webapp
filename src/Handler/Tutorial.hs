@@ -11,6 +11,7 @@ import Text.Julius (RawJS (..))
 import System.IO as IO
 import System.IO.Unsafe
 import Control.Monad
+import System.Directory ( getCurrentDirectory )
 
 getTutorialR :: Handler Html
 getTutorialR = do
@@ -31,7 +32,8 @@ textBoxIds = ("js-codeTextAreaId", "js-codeFormId", "js-consoleTextAreaId")
 
 getExampleCode :: IO Text 
 getExampleCode = do 
-    contents <- IO.readFile "/Users/gabymarfani/Desktop/imperial/year_3/group_project/grenade/examples/main/circle.hs" 
+    cwd <- liftIO $ getCurrentDirectory
+    contents <- IO.readFile (cwd ++ "/grenade-tutorials/src/circle.hs")
     return $ pack contents
     
     
