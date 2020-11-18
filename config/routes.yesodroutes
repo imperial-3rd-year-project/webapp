@@ -19,5 +19,3 @@
 /runcode RunCodeR POST
 
 /imageclass ImageClassR GET
-
-/webcam WebcamR POST

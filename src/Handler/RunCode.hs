@@ -5,7 +5,7 @@
 #-}
 module Handler.RunCode where
 
-import Import (Handler, requireCheckJsonBody, Text, returnJson, getYesod)
+import Import (Handler, requireCheckJsonBody, Text, returnJson)
 import Data.Aeson
 import Control.Monad
 import Language.Haskell.Interpreter

@@ -20,7 +20,7 @@ module Application
     ) where
 
 import Control.Monad.Logger                 (liftLoc)
-import Import                        hiding (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
+import Import hiding (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
 
 
@@ -48,7 +48,6 @@ import Handler.MnistResponse
 import Handler.Tutorial
 import Handler.RunCode
 import Handler.ImageClass
-import Handler.Webcam
 import Sockets.Webcam
 
 import System.IO.Temp 
@@ -75,7 +74,7 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
     
-   -- Return the foundation
+    -- Return the foundation
     return App {..}
 
 -- | Convert our foundation to a WAI Application by calling @toWaiAppPlain@ and
