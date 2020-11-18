@@ -62,10 +62,9 @@ application state pending = do
   conn <- WS.acceptRequest pending
   WS.withPingThread conn 5 (return ()) $ do
     msg <- (WS.receiveData conn) :: IO T.Text
-    putStrLn $ "SERVER SAYS: " Prelude.++ (T.unpack msg)
     let isWebsite = "website" `T.isPrefixOf` msg
     case msg of
-      _ | not isWebsite -> WS.sendTextData conn ("First message must declare client type" :: T.Text)
+      _ | not isWebsite -> WS.sendTextData conn ("First message must declare client" :: T.Text)
         | otherwise -> flip finally (disconnect state) $ do
             modifyMVar_ state $ \s -> do
               let s' = setWebsiteConn conn s
