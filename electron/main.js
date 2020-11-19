@@ -1,12 +1,27 @@
 const { app, BrowserView, BrowserWindow } = require('electron')
 const { spawn } = require('child_process');
-
+const urlExist = require("url-exist");
+ 
 function createWindow () {
-  const mainWindow = new BrowserWindow({ backgroundColor: "#000" });
+  const mainWindow = new BrowserWindow({ backgroundColor: "#fff" });
   const child  = spawn(".stack-work/dist/x86_64-linux-tinfo6/Cabal-3.0.1.0/build/web-app/web-app");
-  mainWindow.loadURL("http://localhost:3000");
+  let childSpawned = false;
   child.stderr.on('data', (data) => { console.error(`stderr: ${data}`); });
   child.stdout.on('data', (data) => { console.log(`data: ${data}`);});
+  const check = async () => {
+      return await urlExist("http://localhost:3000");
+  };
+  let loadSite = setInterval(() => { 
+    let doesExist = check(); 
+    doesExist.then((exists) => {
+      if (exists === true) { 
+        mainWindow.loadURL("http://localhost:3000");
+        clearInterval(loadSite);
+      } else {
+        console.log("Not loaded!");
+      }
+    });
+  }, 100);
   mainWindow.on('close', () => child.kill());
 }
 
