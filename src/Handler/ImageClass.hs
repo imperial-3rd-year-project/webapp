@@ -12,9 +12,9 @@ import Import
 getImageClassR :: Handler Html
 getImageClassR = do
     defaultLayout $ do
-        let (mnistDataId, canvasId) = canvasIds
+        let (canvasId, devicesId) = canvasIds
         setTitle "Image Classification"
         $(widgetFile "image-class")
 
 canvasIds :: (Text, Text)
-canvasIds = ("js-mnistDataId", "js-canvasId")
+canvasIds = ("js-canvasId", "js-devicesId")
