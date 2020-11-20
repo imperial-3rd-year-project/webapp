@@ -2,15 +2,18 @@ let socketOpened = false;
 let socket, canvas;
 let fetchingDevices = false;
 let devices = [];
+let dataURL;
 
 const w = 640;
 const h = 360;
 const p = w * h;
 
 window.onload = function() {
+    // Setup canvas
 	canvas = document.getElementById(#{toJSON canvasId});
     let ctx = canvas.getContext('2d');
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
 	// Create WebSocket connection.
 	socket = new WebSocket('ws://127.0.0.1:9160');
     socket.binaryType = 'arraybuffer';
@@ -58,6 +61,31 @@ window.onload = function() {
         }
 	});
 
+    // Switch input modes
+    const inputCheckbox = document.getElementById("image-input-checkbox");
+    inputCheckbox.addEventListener('change', function (event) {
+        if (event.target.checked) {
+            // Webcam mode 
+            document.getElementById("webcam-input-div").style.display = 'block';
+            document.getElementById("upload-image-div").style.display = 'none';
+        } else {
+            // Upload image
+            document.getElementById("webcam-input-div").style.display = 'none';
+            document.getElementById("upload-image-div").style.display = 'block';
+        }
+    });
+
+    document.getElementById("upload-image-input").onchange = function(event) {
+        let input = event.target;
+        let reader = new FileReader();
+        reader.onload = function(){
+            dataURL = reader.result;
+            let output = document.getElementById('uploaded-image');
+            output.src = dataURL;
+            console.log(reader.result);
+        };
+        reader.readAsDataURL(input.files[0]);
+    };
 };
 
 function openWebcam() {
