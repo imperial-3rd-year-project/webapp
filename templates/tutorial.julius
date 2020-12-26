@@ -3,7 +3,7 @@ $(function() {
   $("##{rawJS codeFormId}").submit(function(event) {
     event.preventDefault();
 
-    var code = $("##{rawJS codeTextAreaId}").val();
+    var code = document.getElementById("#{rawJS codeTextAreaId}").innerText;
     // (Browsers that enforce the "required" attribute on the textarea won't see this alert)
     if (!code) {
       alert("Please write some code to run.");
@@ -27,5 +27,12 @@ $(function() {
       },
     });
 
+  });
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+      document.execCommand('insertLineBreak');
+      event.preventDefault();
+    }
   });
 });

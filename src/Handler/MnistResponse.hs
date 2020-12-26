@@ -6,13 +6,13 @@
 
 module Handler.MnistResponse where
 
-import qualified Data.Vector.Storable  as V
 import Data.Vector.Storable.ByteString        (byteStringToVector)
 import Grenade.Assets.Paths
 import Grenade.Demos.MNIST
+import Grenade.Assets.Paths
 import Import                          hiding (Vector)
 import Data.ByteString.Base64
-import Data.Either (fromRight)
+import qualified Debug.Trace as DB
 
 newtype MnistResponse = MnistResponse {unMnistResponse :: Text}
   deriving Show
@@ -20,15 +20,11 @@ newtype MnistResponse = MnistResponse {unMnistResponse :: Text}
 
 postMnistResponseR :: Handler Value
 postMnistResponseR = do
-  return "test the circle"
-  response <- requireCheckJsonBody
+  response  <- requireCheckJsonBody
   mnistPath <- liftIO $ getPathForNetwork MNIST
-  net       <- liftIO $ loadNetwork mnistPath
+  net <- liftIO $ (loadNetwork mnistPath :: IO MNIST)
   let image'        = encodeUtf8 $ unMnistResponse response
       Right image'' = decode image'
       image         = byteStringToVector image''
-  traceM $  show $ V.length image
-  --liftIO $ Prelude.putStrLn "aaaaaa help me please"
-  --liftIO $ Prelude.putStrLn $ show $ decode image'
-  return $ toJSON $ runNet' net image 224
+  return $ toJSON $ runNet' net image 140
 

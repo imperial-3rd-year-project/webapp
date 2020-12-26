@@ -110,7 +110,12 @@ instance Yesod App where
                     { menuItemLabel = "Tutorial"
                     , menuItemRoute = TutorialR
                     , menuItemAccessCallback = True
-                    }    
+                    },
+                NavbarLeft $ MenuItem
+                    { menuItemLabel = "Image Classification"
+                    , menuItemRoute = ImageClassR
+                    , menuItemAccessCallback = True
+                    }
                 ]
 
         let navbarLeftMenuItems = [x | NavbarLeft x <- menuItems]
@@ -127,6 +132,8 @@ instance Yesod App where
 
         pc <- widgetToPageContent $ do
             addStylesheet $ StaticR css_bootstrap_css
+            addStylesheet $ StaticR css_prism_css
+            addScript     $ StaticR js_prism_js
             $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 

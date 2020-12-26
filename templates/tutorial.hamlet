@@ -6,24 +6,26 @@
             <h2>
                 Try out below.
 
-        
-
-            
-
 
 <div .container>
     <!-- Starting
         ================================================== -->
     <form .form-horizontal ##{codeFormId}>
         <div .field>
-            <textarea rows="6" ##{codeTextAreaId} style="font-family: courier new;" required>#{exampleCode}</textarea>
+            <div contenteditable="true" ##{codeTextAreaId}>
+                <pre>
+                    <code .language-haskell>
+                        #{exampleCode}
 
         <button .btn.btn-primary type=submit>
             Run code
 
         <div .field>
-            <textarea readonly rows="6" ##{consoleTextAreaId} placeholder="some output here..." style="font-family: courier new;" required></textarea>
+            <pre>
+                <code ##{consoleTextAreaId}>
+        <!--
+            <textarea readonly rows="6" ##{consoleTextAreaId} placeholder="some output here..." style="font-family: monospace; width: 100%; max-width: 100%; height: 400px;" required>
 
-
+        -->
 
 

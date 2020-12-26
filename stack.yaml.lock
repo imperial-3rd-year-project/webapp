@@ -53,6 +53,28 @@ packages:
       sha256: 2dbdda2225969dcd452d983a2ac7e52341e5fc1df76103342c9fac08fc686931
   original:
     hackage: network-2.8.0.1@sha256:0f165dffa752d8cde30c2bde86f80609c4f1dc5eeb3182d593041f97839c5b3b
+- completed:
+    name: haskell-webcam
+    version: 0.1.0.0
+    git: git@gitlab.doc.ic.ac.uk:g206002126/haskell-webcam.git
+    pantry-tree:
+      size: 1379
+      sha256: d2426e7de743b6d78098d8d57994e19a10d9390030d55aef7a5ebc52900ee2fb
+    commit: 12d383556892f769c34a3a2da313445e29a36171
+  original:
+    git: git@gitlab.doc.ic.ac.uk:g206002126/haskell-webcam.git
+    commit: 12d383556892f769c34a3a2da313445e29a36171
+- completed:
+    name: grenade
+    version: 0.1.1
+    git: git@gitlab.doc.ic.ac.uk:g206002126/grenade.git
+    pantry-tree:
+      size: 9132
+      sha256: 75b39672fc4b80f57b88c7d0794518cb260b1b1e69013f487305543bca2250e6
+    commit: 69f3324220e03d2f473c587f8a4e7f7d86d14e46
+  original:
+    git: git@gitlab.doc.ic.ac.uk:g206002126/grenade.git
+    commit: 69f3324220e03d2f473c587f8a4e7f7d86d14e46
 snapshots:
 - completed:
     size: 532177

@@ -1,0 +1,37 @@
+<div .masthead>
+    <div .container>
+        <div .row>
+            <h1 .header>
+                Image classification
+            <h2>
+                Detecting every day objects
+            <div>
+                <span>
+                    Custom Image
+                <label .switch>
+                    <input type="checkbox" id="image-input-checkbox" .switch-checkbox >
+                    <span .slider>
+                <span>
+                    Webcam Input
+            <div id="upload-image-div">
+                <img style="height:224px; width:224px; object-fit: cover;" #uploaded-image>
+                <div>
+                    <input type="file" accept='image/*' title=" " #upload-image-input style="display:none;">
+                    <label .btn .btn-primary for="upload-image-input">Upload
+
+            <div id="webcam-input-div">
+                <div>
+                    <canvas ##{canvasId} width="640" height="360" style="background-color: #ffffff;">
+                <div>
+                    <select id="##{devicesId}" name="##{devicesId}">
+                <div>
+                    <input type="button" class="btn btn-primary" value="Open Webcam" id="webcam-btn" onclick="openWebcam()">
+
+
+<div .container>
+    <div .bs-docs-section>
+        <div .row>
+            <div .col-lg-12>
+                <div .page-header>
+                    <h2>Help
+

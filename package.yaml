@@ -39,12 +39,15 @@ dependencies:
 - wai
 - foreign-store
 - bytestring-to-vector
-- grenade
+- grenade ==0.1.1
+- haskell-webcam
 - base64-bytestring
 - hint
 - temporary 
 - process
 - filepath
+- websockets
+- word8 >= 0.1.3
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.
@@ -101,3 +104,4 @@ flags:
     description: Turn on development settings, like auto-reload templates.
     manual: false
     default: false
+

@@ -20,7 +20,10 @@ module Application
     ) where
 
 import Control.Monad.Logger                 (liftLoc)
-import Import
+import Import hiding (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
+import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
+
+
 import Language.Haskell.TH.Syntax           (qLocation)
 import Network.HTTP.Client.TLS              (getGlobalManager)
 import Network.Wai (Middleware)
@@ -44,6 +47,13 @@ import Handler.Mnist
 import Handler.MnistResponse
 import Handler.Tutorial
 import Handler.RunCode
+import Handler.ImageClass
+import Sockets.Webcam
+
+import System.IO.Temp 
+import System.Process
+import GHC.IO.Handle
+import System.FilePath.Posix
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
@@ -63,7 +73,7 @@ makeFoundation appSettings = do
     appStatic <-
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
-
+    
     -- Return the foundation
     return App {..}
 
@@ -124,6 +134,11 @@ develMain = develMainHelper getApplicationDev
 -- | The @main@ function for an executable running this site.
 appMain :: IO ()
 appMain = do
+
+    -- Start the server for the webcam
+    state <- newMVar newServerState
+    forkIO (startServer state)
+
     -- Get the settings from all relevant sources
     settings <- loadYamlSettingsArgs
         -- fall back to compile-time values, set to [] to require values at runtime
@@ -140,7 +155,6 @@ appMain = do
 
     -- Run the application with Warp
     runSettings (warpSettings foundation) app
-
 
 --------------------------------------------------------------
 -- Functions for DevelMain.hs (a way to run the app from GHCi)

@@ -14,7 +14,6 @@ import System.Process
 import GHC.IO.Handle
 import System.FilePath.Posix
 import System.Directory ( getCurrentDirectory )
-
 -- import           Control.Monad
 -- import           Control.Monad.Random
 -- import           GHC.TypeLits
@@ -22,7 +21,7 @@ import System.Directory ( getCurrentDirectory )
 -- import qualified Numeric.LinearAlgebra.Static as SA
 
 -- import           Grenade
-
+import Data.Maybe
 
 newtype UserCode = UserCode {unUserCode :: String}
   deriving Show
@@ -33,7 +32,6 @@ postRunCodeR = do
     -- requireCheckJsonBody will parse the request body into the appropriate type, or return a 400 status code if the request JSON is invalid.
     code <- requireCheckJsonBody :: Handler UserCode
     let contents = (unUserCode code)
-    
     cwd <- liftIO $ getCurrentDirectory
     let cwd' = cwd ++ "/grenade-tutorials"
     let tmpFile = cwd' ++ "/src/circle-user.hs"
@@ -46,7 +44,3 @@ postRunCodeR = do
             (Nothing) -> error "ERROR" 
 
     return $ toJSON $ res
-
-
-
-
