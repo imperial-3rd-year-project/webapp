@@ -11,7 +11,7 @@ dependencies:
 - classy-prelude >=1.5 && <1.6
 - classy-prelude-conduit >=1.5 && <1.6
 - classy-prelude-yesod >=1.5 && <1.6
-- bytestring >=0.10 && <0.11
+- bytestring >=0.10
 - text >=0.11 && <2.0
 - template-haskell
 - shakespeare >=2.0 && <2.1
@@ -48,8 +48,11 @@ dependencies:
 - filepath
 - websockets
 - word8 >= 0.1.3
+- hmatrix
+- array
+- hip
 
-# The library contains all of our application code. The executable
+  # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.
 library:
 

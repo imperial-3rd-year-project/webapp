@@ -1,0 +1,24 @@
+<div .masthead>
+    <div .container>
+        <div .row>
+            <h1 .header>
+                Image Super Resolution
+            <div .img-comp-container #upload-image-div>
+                <div #img-comp-container-uploaded .img-comp-img hidden>
+                    <img src="" width="672" height="672" #uploaded-image>
+                <div #img-comp-container-processed .img-comp-img .img-comp-overlay hidden>
+                    <img src="" width="672" height="672" #processed-image>
+
+            <div>
+                <input type="file" accept='image/*' title=" " #upload-image-input style="display:none;">
+                <label .btn .btn-primary for="upload-image-input">Upload
+            <div #process-message>
+
+
+<div .container>
+    <div .bs-docs-section>
+        <div .row>
+            <div .col-lg-12>
+                <div .page-header>
+                    <h2>Image Super Resolution
+                    <p>
