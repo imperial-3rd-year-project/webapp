@@ -115,6 +115,16 @@ instance Yesod App where
                     { menuItemLabel = "Image Classification"
                     , menuItemRoute = ImageClassR
                     , menuItemAccessCallback = True
+                    },
+                NavbarLeft $ MenuItem
+                    { menuItemLabel = "Object Detection"
+                    , menuItemRoute = ObjectDetectR
+                    , menuItemAccessCallback = True
+                    },
+                NavbarLeft $ MenuItem
+                    { menuItemLabel = "Super Resolution"
+                    , menuItemRoute = SuperImageR
+                    , menuItemAccessCallback = True
                     }
                 ]
 

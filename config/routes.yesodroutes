@@ -19,3 +19,7 @@
 /runcode RunCodeR POST
 
 /imageclass ImageClassR GET
+
+/objectdetect ObjectDetectR GET
+
+/superimage SuperImageR GET

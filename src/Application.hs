@@ -48,7 +48,12 @@ import Handler.MnistResponse
 import Handler.Tutorial
 import Handler.RunCode
 import Handler.ImageClass
+import Handler.ObjectDetect
+import Handler.SuperImage
 import Sockets.Webcam
+import Sockets.Types
+import Grenade
+import Grenade.Networks.ResNet18
 
 import System.IO.Temp 
 import System.Process
@@ -73,7 +78,6 @@ makeFoundation appSettings = do
     appStatic <-
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
-    
     -- Return the foundation
     return App {..}
 
@@ -136,7 +140,8 @@ appMain :: IO ()
 appMain = do
 
     -- Start the server for the webcam
-    state <- newMVar newServerState
+    newState <- newServerState
+    state <- newMVar newState
     forkIO (startServer state)
 
     -- Get the settings from all relevant sources

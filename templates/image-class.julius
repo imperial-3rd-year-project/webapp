@@ -1,18 +1,49 @@
 let socketOpened = false;
 let socket, canvas;
-let fetchingDevices = false;
-let devices = [];
+let fetchingDevices = false,
+    fetchingResnet  = false,
+    isLabel         = true,
+    resnetCounter   = 0,
+    webcamPaused    = false;
+let devices = [],
+    recognisedObject = {};
 let dataURL;
 
 const w = 640;
-const h = 360;
+const h = 480;
 const p = w * h;
 
+// Square on webcam
+let sqStrokeWidth = 4,
+    sqWidth = 224,
+    webSquare = {x: (w - (sqWidth + sqStrokeWidth)) / 2, y: (h - (sqWidth + sqStrokeWidth)) / 2},
+    sqMouse = {},
+    isMoving = false;
+
 window.onload = function() {
-    // Setup canvas
+    // Setup webcam canvas
 	canvas = document.getElementById(#{toJSON canvasId});
     let ctx = canvas.getContext('2d');
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    canvas.addEventListener('mousedown', function(e){
+        sqMouse.x = e.pageX;
+        sqMouse.y = e.pageY;
+        isMoving = true;
+    });
+
+    canvas.addEventListener('mousemove', function(e){
+        if (isMoving) {
+            let move = {x: e.pageX - sqMouse.x, y: e.pageY - sqMouse.y};
+            // Move the rectangle on screen
+            webSquare = {x: webSquare.x + move.x, y: webSquare.y + move.y};
+            sqMouse.x = e.pageX;
+            sqMouse.y = e.pageY;
+        }
+    });
+    
+    canvas.addEventListener('mouseup', function(e){
+        isMoving = false;
+    });
 
 	// Create WebSocket connection.
 	socket = new WebSocket('ws://127.0.0.1:9160');
@@ -44,6 +75,19 @@ window.onload = function() {
             const deviceName = event.data.substr(event.data.indexOf('$') + 1);
             const details = [devicePath, deviceName];
             devices.push(details);
+        } else if (event.data.toString().startsWith("ERR")) {
+            console.log(event.data);
+        } else if (event.data === "BEGIN RESNET") {
+            fetchingResnet = true;
+            resnetCounter = 0;
+            isLabel = true;
+        } else if (event.data === "END RESNET") {
+            fetchingResnet = false;
+            document.getElementById("object-label").innerHTML = generateObjectSentence(recognisedObject.label);
+        } else if (fetchingResnet) {
+            recognisedObject.label = event.data;
+        } else if (event.data === "RESUME FEED") {
+            webcamPaused = false;
         } else {
             let arr = new Uint8Array(event.data);
             let n = p * 4;
@@ -58,6 +102,18 @@ window.onload = function() {
             }
             ctx = canvas.getContext('2d');
             ctx.putImageData(dest, 0, 0);
+
+            ctx.beginPath();
+            ctx.rect(webSquare.x, webSquare.y, sqWidth, sqWidth);
+            ctx.lineWidth = sqStrokeWidth;
+            ctx.setLineDash([15, 5]);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.stroke();
+            
+            if (webcamPaused) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            }
         }
 	});
 
@@ -73,16 +129,34 @@ window.onload = function() {
             document.getElementById("webcam-input-div").style.display = 'none';
             document.getElementById("upload-image-div").style.display = 'block';
         }
+
+        document.getElementById("object-label").innerHTML = '';
     });
 
     document.getElementById("upload-image-input").onchange = function(event) {
         let input = event.target;
         let reader = new FileReader();
+        document.getElementById("object-label").innerHTML = "I'm trying to work out what I'm looking at, just a moment...";
         reader.onload = function(){
             dataURL = reader.result;
+            let img = new Image();
             let output = document.getElementById('uploaded-image');
-            output.src = dataURL;
-            console.log(reader.result);
+            let ctx = output.getContext('2d');
+            img.onload = function() {
+                if (img.width > img.height) {
+                    let w = img.width * (224 / img.height);
+                    ctx.drawImage(img, 0, 0, w, 224);
+                } else {
+                    let h = img.height * (224 / img.width);
+                    ctx.drawImage(img, 0, 0, 224, h);
+                }
+                console.log("Sending buffer...");
+                socket.send('IMAGE RESNET');
+                let buff = ctx.getImageData(0, 0, 224, 224).data.buffer;
+                socket.send(buff);
+
+            };
+            img.src = dataURL;
         };
         reader.readAsDataURL(input.files[0]);
     };
@@ -103,4 +177,24 @@ function closeWebcam() {
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     document.getElementById("webcam-btn").value = "Open Webcam"
     document.getElementById("webcam-btn").onclick = openWebcam;
+}
+
+function captureImage() {
+    document.getElementById("object-label").innerHTML = "I'm trying to work out what I'm looking at, just a moment...";
+    webcamPaused = true;
+    socket.send('CAPTURE RESNET');
+    socket.send(webSquare.x.toString());
+    socket.send(webSquare.y.toString());
+}
+
+const sentences = [
+   {prefix: "Looks like a good old", suffix: "to me", article: false},
+   {prefix: "I'm quite sure that's a lovely", suffix: "", article: false},
+   {prefix: "How exotic! I have never seen a", suffix: "like that before", article: true}
+];
+
+function generateObjectSentence(label) {
+    const template = sentences[Math.floor(Math.random() * sentences.length)];
+    let w = (template.article && ['a', 'e', 'i', 'o', 'u'].includes(label[0])) ? "n" : "";
+    return template.prefix + w + " <strong>" + label.split(",")[0] + "</strong> " + template.suffix;
 }

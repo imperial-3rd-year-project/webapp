@@ -3,8 +3,6 @@
         <div .row>
             <h1 .header>
                 Image classification
-            <h2>
-                Detecting every day objects
             <div>
                 <span>
                     Custom Image
@@ -13,19 +11,24 @@
                     <span .slider>
                 <span>
                     Webcam Input
-            <div id="upload-image-div">
-                <img style="height:224px; width:224px; object-fit: cover;" #uploaded-image>
+            <div>
                 <div>
-                    <input type="file" accept='image/*' title=" " #upload-image-input style="display:none;">
-                    <label .btn .btn-primary for="upload-image-input">Upload
+                    <div #upload-image-div>
+                        <canvas width="224" height="224" style="background-color: #000" #uploaded-image>
+                        <div>
+                            <input type="file" accept='image/*' title=" " #upload-image-input style="display:none;">
+                            <label .btn .btn-primary for="upload-image-input">Upload
 
-            <div id="webcam-input-div">
-                <div>
-                    <canvas ##{canvasId} width="640" height="360" style="background-color: #ffffff;">
-                <div>
-                    <select id="##{devicesId}" name="##{devicesId}">
-                <div>
-                    <input type="button" class="btn btn-primary" value="Open Webcam" id="webcam-btn" onclick="openWebcam()">
+                    <div #webcam-input-div>
+                        <div>
+                            <canvas ##{canvasId} width="640" height="480" style="background-color: #000;">
+                        <div #webcam-select>
+                            <select id="##{devicesId}" name="##{devicesId}">
+                            <input type="button" class="btn btn-primary" value="Open Webcam" id="webcam-btn" onclick="openWebcam()">
+                            
+                        <div>
+                            <input type="button" class="btn btn-success" value="Capture" id="capture-btn" onclick="captureImage()">
+                <div #object-label>
 
 
 <div .container>
@@ -33,5 +36,19 @@
         <div .row>
             <div .col-lg-12>
                 <div .page-header>
-                    <h2>Help
-
+                    <h2>Image Classification with ResNet-18
+                    <p>
+                        ResNet18 is a convolutional deep network, capable of detecting 1000 
+                        items. Deeper neural networks are significantly harder to train; to 
+                        overcome this problem, ResNet uses residual blocks. 
+                        One example of such a block is in the following diagram:
+                    <pre>
+                        \                      
+                        \--->[convolution]--->[batch norm]--->[relu]--->[+]--->
+                        \ |----------------------------------------------^
+                        \                     identity
+                    <p>
+                        By skipping some layers in the output of the activation and 
+                        recombining, the network is able to mitigate the effects of
+                        problems associated with deeper networks, such as the 
+                        vanishing gradient problem.

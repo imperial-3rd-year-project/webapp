@@ -28,10 +28,13 @@ extra-deps:
   - ffmpeg-light-0.13.0@sha256:c0bcad8a64a7be3f3b3b8b94a5963845999df2c89e01f6e4d27ed646ad4bc95f
   - ioctl-0.0.1@sha256:5861ee9cdf3a2159fce85e3f9213b99bbbb0132e0ff85af7fc23df5215bd2096
   - network-2.8.0.1@sha256:0f165dffa752d8cde30c2bde86f80609c4f1dc5eeb3182d593041f97839c5b3b
+  - symbols-0.3.0.0@sha256:5d051bccbd4bcb33fa8ce076bd3cd2bacc90973682f7340976758947eaa128a9,964
+  - numeric-limits-0.1.0.0@sha256:214bb53112bff315e42c0e9efa4a89e2cc2e9914e6232d923b596f29f9b1afe6,456
+  - hip-1.5.6.0@sha256:296c55622f62485422c0a593c7306af1a5abf8ba9f866dcdffc281b01eba65d7,6988
   - git: git@gitlab.doc.ic.ac.uk:g206002126/haskell-webcam.git
-    commit: 12d383556892f769c34a3a2da313445e29a36171
+    commit: 85f8fcfe0f5a283768cec9db719db2beb79b35ff
   - git: git@gitlab.doc.ic.ac.uk:g206002126/grenade.git
-    commit: 69f3324220e03d2f473c587f8a4e7f7d86d14e46
+    commit: 45a3248e1a9f286865ceed1f3d9e9905447948b3
 # - acme-missiles-0.3
 #- git: https://github.com/commercialhaskell/stack.git
 #  commit: 61f8151fe9102a4a2a69fa6947e9980ad05693da

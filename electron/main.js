@@ -3,9 +3,9 @@ const { spawn } = require('child_process');
 const urlExist = require("url-exist");
  
 function createWindow () {
-  const mainWindow = new BrowserWindow({ backgroundColor: "#fff" });
+  const mainWindow = new BrowserWindow();
+  mainWindow.maximize();
   const child  = spawn(".stack-work/dist/x86_64-linux-tinfo6/Cabal-3.0.1.0/build/web-app/web-app");
-  let childSpawned = false;
   child.stderr.on('data', (data) => { console.error(`stderr: ${data}`); });
   child.stdout.on('data', (data) => { console.log(`data: ${data}`);});
   const check = async () => {

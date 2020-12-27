@@ -1,0 +1,39 @@
+<div .masthead>
+    <div .container>
+        <div .row>
+            <h1 .header>
+                Object Detection
+            <div>
+                <span>
+                    Custom Image
+                <label .switch>
+                    <input type="checkbox" id="image-input-checkbox" .switch-checkbox >
+                    <span .slider>
+                <span>
+                    Webcam Input
+            <div>
+                <div>
+                    <div #upload-image-div>
+                        <canvas width="416" height="416" style="background-color: #000" #uploaded-image>
+                        <div>
+                            <input type="file" accept='image/*' title=" " #upload-image-input style="display:none;">
+                            <label .btn .btn-primary for="upload-image-input">Upload
+
+                    <div #webcam-input-div>
+                        <div>
+                            <canvas #canvasId width="640" height="480" style="background-color: #000;">
+                        <div #webcam-select>
+                            <select name="devicesId" #devicesId>
+                            <input type="button" class="btn btn-primary" value="Open Webcam" id="webcam-btn" onclick="openWebcam()">
+                        <div>
+                            <input type="button" class="btn btn-success" value="Capture" id="capture-btn" onclick="captureImage()">
+                <div #object-label>
+
+
+<div .container>
+    <div .bs-docs-section>
+        <div .row>
+            <div .col-lg-12>
+                <div .page-header>
+                    <h2>Object Detection with Tiny YOLOv2
+                    <p>
