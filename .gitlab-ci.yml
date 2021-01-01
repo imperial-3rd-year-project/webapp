@@ -23,4 +23,4 @@ test:
 
 lint:
   stage: lint
-  script: hlint lint app/ config/ dist-newstyle/ src/ static/ templates/ test/
+  script: hlint lint app/ config/ src/ static/ templates/ test/
