@@ -1,15 +1,12 @@
-{-# LANGUAGE OverloadedStrings
-           , DeriveGeneric
-           , GeneralisedNewtypeDeriving
-           , DerivingStrategies
-#-}
+{-# LANGUAGE OverloadedStrings, GeneralisedNewtypeDeriving, DerivingStrategies #-}
+
 module Handler.RunCode where
 
 import Import (Handler, requireCheckJsonBody, Text, returnJson)
 import Data.Aeson
 import Control.Monad
 import Language.Haskell.Interpreter
-import System.IO.Temp 
+import System.IO.Temp
 import System.Process
 import GHC.IO.Handle
 import System.FilePath.Posix
@@ -31,16 +28,16 @@ postRunCodeR :: Handler Value
 postRunCodeR = do
     -- requireCheckJsonBody will parse the request body into the appropriate type, or return a 400 status code if the request JSON is invalid.
     code <- requireCheckJsonBody :: Handler UserCode
-    let contents = (unUserCode code)
-    cwd <- liftIO $ getCurrentDirectory
+    let contents = unUserCode code
+    cwd <- liftIO getCurrentDirectory
     let cwd' = cwd ++ "/grenade-tutorials"
     let tmpFile = cwd' ++ "/src/circle-user.hs"
     liftIO $ print tmpFile
     liftIO $ writeFile tmpFile contents
-    (_, hout, _ , _) <- liftIO $ createProcess (shell ("stack run circle-user")){ cwd = Just cwd', std_out = CreatePipe}
+    (_, hout, _ , _) <- liftIO $ createProcess (shell "stack run circle-user"){ cwd = Just cwd', std_out = CreatePipe}
     res <- do
-        case hout of 
+        case hout of
             (Just h) -> liftIO $ hGetContents h
-            (Nothing) -> error "ERROR" 
+            Nothing -> error "ERROR"
 
-    return $ toJSON $ res
+    return $ toJSON res

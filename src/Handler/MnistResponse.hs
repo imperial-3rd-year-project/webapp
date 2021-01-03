@@ -1,8 +1,4 @@
-{-# LANGUAGE OverloadedStrings
-           , DeriveGeneric
-           , GeneralisedNewtypeDeriving
-           , DerivingStrategies
-#-}
+{-# LANGUAGE OverloadedStrings, GeneralisedNewtypeDeriving, DerivingStrategies #-}
 
 module Handler.MnistResponse where
 
@@ -20,7 +16,7 @@ postMnistResponseR :: Handler Value
 postMnistResponseR = do
   response  <- requireCheckJsonBody
   mnistPath <- liftIO $ getPathForNetwork MNIST
-  net <- liftIO $ (loadSerializedNetwork mnistPath :: IO MNIST)
+  net <- liftIO (loadSerializedNetwork mnistPath :: IO MNIST)
   let image'        = encodeUtf8 $ unMnistResponse response
       Right image'' = decode image'
       image         = byteStringToVector image''
