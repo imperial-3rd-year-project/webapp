@@ -2,6 +2,11 @@
     max-height: 800px;
     overflow: auto;
     display: inline-block;
+    width: 100%;
+}
+
+#js-codeTextAreaId:focus { 
+    outline: none; 
 }
 
 pre{
@@ -11,4 +16,15 @@ pre{
 .field {
     padding-top: 24px;
     padding-bottom: 24px;
+    width: 100%;
+}
+
+#js-consoleTextAreaId {
+    color: black;
+    height: 600px;
+    max-height: 600px;
+    overflow: auto;
+    width: 100%;
+    display: inline-block;
+    font-size: 1.2em;
 }

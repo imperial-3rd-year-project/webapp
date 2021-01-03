@@ -27,8 +27,8 @@ import           Graphics.Display.ConversionUtils (resize)
 
 enableCaptureWithYolo :: WS.Connection -> MVar ServerState -> IO ()
 enableCaptureWithYolo site state = do
-  let offset = (112, 32) :: (Double, Double)
-  modifyMVar_ state $ \(conn, stream, _, p, res, yolo, u) -> return (conn, stream, Just offset, Just Yolo, res, yolo, u)
+  let offset' = (112, 32) :: (Double, Double)
+  modifyMVar_ state $ \s -> return s {offset = Just offset', imgProc = Just Yolo}
   pure ()
 
 captureWithYolo :: (Double, Double)

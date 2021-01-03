@@ -7,17 +7,32 @@ import Grenade
 
 newtype WebsiteConn = WebsiteConn WS.Connection
 
-type ServerState = (Maybe WebsiteConn, Maybe (Device.Device Disp.S), Maybe (Double, Double), Maybe ImageProcessor, ResNet18, TinyYoloV2, SuperResolution)
+data ServerState 
+  = ServerState { conn     :: Maybe WebsiteConn
+                , webcam   :: Maybe (Device.Device Disp.S)
+                , offset   :: Maybe (Double, Double)
+                , imgProc  :: Maybe ImageProcessor
+                , resnet   :: ResNet18
+                , yolo     :: TinyYoloV2
+                , superres :: SuperResolution
+                }
 
 newServerState :: IO ServerState
 newServerState = do
-  Right res <- getPathForNetwork ResNet18 >>= loadResNet
-
-  Right yolo <- getPathForNetwork TinyYoloV2 >>= loadTinyYoloV2
-  
+  Right res   <- getPathForNetwork ResNet18 >>= loadResNet
+  Right yolo  <- getPathForNetwork TinyYoloV2 >>= loadTinyYoloV2
   Right super <- getPathForNetwork SuperResolution >>= loadSuperResolution
   
-  return (Nothing, Nothing, Nothing, Nothing, res, yolo, super)
+  return ServerState 
+    { conn     = Nothing
+    , webcam   = Nothing
+    , offset   = Nothing
+    , imgProc  = Nothing
+    , resnet   = res
+    , yolo     = yolo
+    , superres = super
+    }
+
 
 data ImageProcessor = Resnet | Yolo | SuperRes
 
@@ -26,5 +41,6 @@ data MessageType
   | WebcamOff
   | Image   ImageProcessor
   | Capture ImageProcessor
+  | Compile
   | Error   String
 

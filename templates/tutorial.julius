@@ -1,32 +1,37 @@
 
 $(function() {
-  $("##{rawJS codeFormId}").submit(function(event) {
-    event.preventDefault();
+  socket = new WebSocket('ws://127.0.0.1:9160');
+  socket.binaryType = 'arraybuffer';
+  
+  // Connection opened
+	socket.addEventListener('open', function (event) {
+		socket.send('HELLO');
+	});
+	// Listen for messages
+	socket.addEventListener('message', function (event) {
+    if (event.data === "BEGIN DEVLIST") {
+      devList = true;
+    } else if (event.data === "END DEVLIST") {
+      devList = false;
+    } else if (!devList) {
+      let console = document.getElementById(#{toJSON consoleTextAreaId});
+      console.innerHTML += event.data;
+      console.scrollTop = console.scrollHeight - console.clientHeight;
+    }
+  });
 
+  $("#compile").on('click', function(event) {
+    event.preventDefault();
     var code = document.getElementById("#{rawJS codeTextAreaId}").innerText;
-    // (Browsers that enforce the "required" attribute on the textarea won't see this alert)
     if (!code) {
       alert("Please write some code to run.");
       return;
     }
 
-	let postData = JSON.stringify(code);
-    console.log(postData);
-    // Make an AJAX request to the server to create a new comment
-    $.ajax({
-      url: '@{RunCodeR}',
-      type: 'POST',
-      contentType: "application/json",
-      data: postData,
-      success: function (data) {
-        console.log(data);
-        document.getElementById(#{toJSON consoleTextAreaId}).innerHTML = data
-      },
-      error: function (data) {
-        console.log("Error creating comment: " + data);
-      },
-    });
+	  socket.send("COMPILE");
+    socket.send(code);
 
+    document.getElementById(#{toJSON consoleTextAreaId}).innerHTML = "Compiling code, please wait...\n";
   });
 
   document.addEventListener('keydown', function(event) {

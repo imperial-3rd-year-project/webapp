@@ -5,6 +5,7 @@ const urlExist = require("url-exist");
 function createWindow () {
   const mainWindow = new BrowserWindow();
   mainWindow.maximize();
+  mainWindow.loadFile("electron/index.html");
   const child  = spawn(".stack-work/dist/x86_64-linux-tinfo6/Cabal-3.0.1.0/build/web-app/web-app");
   child.stderr.on('data', (data) => { console.error(`stderr: ${data}`); });
   child.stdout.on('data', (data) => { console.log(`data: ${data}`);});
@@ -26,19 +27,19 @@ function createWindow () {
 }
 
 app.disableHardwareAcceleration();
-app.whenReady().then(createWindow)
+app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
-})
+});
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
-})
+});
 
 app.on('certificate-error', function(event, webContents, url, error, 
   certificate, callback) {

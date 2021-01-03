@@ -4,7 +4,7 @@
             <h1 .header>
                 Write your own neural network
             <h2>
-                Try out below.
+                Try it out below.
 
 
 <div .container>
@@ -17,15 +17,10 @@
                     <code .language-haskell>
                         #{exampleCode}
 
-        <button .btn.btn-primary type=submit>
+        <button .btn.btn-primary #compile>
             Run code
 
         <div .field>
             <pre>
                 <code ##{consoleTextAreaId}>
-        <!--
-            <textarea readonly rows="6" ##{consoleTextAreaId} placeholder="some output here..." style="font-family: monospace; width: 100%; max-width: 100%; height: 400px;" required>
-
-        -->
-
 
