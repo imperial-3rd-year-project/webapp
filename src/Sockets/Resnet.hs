@@ -29,8 +29,8 @@ enableCaptureWithResnet :: WS.Connection -> MVar ServerState -> IO ()
 enableCaptureWithResnet site state = do
   xMsg <- WS.receiveData site :: IO T.Text
   yMsg <- WS.receiveData site :: IO T.Text
-  let offset = (read $ T.unpack xMsg, read $ T.unpack yMsg) :: (Double, Double)
-  modifyMVar_ state $ \(conn, stream, _, _, n, y, u) -> return (conn, stream, Just offset, Just Resnet, n, y, u)
+  let offset' = (read $ T.unpack xMsg, read $ T.unpack yMsg) :: (Double, Double)
+  modifyMVar_ state $ \s -> return s { offset = Just offset', imgProc = Just Resnet }
   pure ()
 
 captureWithResnet :: (Double, Double)
