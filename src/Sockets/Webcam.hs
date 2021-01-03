@@ -45,14 +45,14 @@ type WebcamDevice = (FilePath, String)
 
 getWebcamDevices :: IO [WebcamDevice]
 getWebcamDevices = do
-  getDevices :: IO [Device.Device U]  
-  >>= mapM getName 
+  getDevices :: IO [Device.Device U]
+  >>= mapM getName
   >>= pure
     where
       getName :: Device.Device U -> IO WebcamDevice
       getName dev = do
         let path = deviceDescription dev
-        name <- readFile $ "/sys/class/video4linux/" ++ (takeFileName path) ++ "/name"
+        name <- readFile $ "/sys/class/video4linux/" ++ takeFileName path ++ "/name"
         pure (path, name)
 
 startServer :: MVar ServerState -> IO ()
@@ -64,7 +64,7 @@ application :: MVar ServerState -> WS.ServerApp
 application state pending = do
   conn <- WS.acceptRequest pending
   WS.withPingThread conn 5 (return ()) $ do
-    msg <- (WS.receiveData conn) :: IO T.Text
+    msg <- WS.receiveData conn :: IO T.Text
     let isWebsite = "HELLO" `T.isPrefixOf` msg
     case msg of
       _ | not isWebsite -> WS.sendTextData conn ("First message must say hello" :: T.Text)
@@ -72,7 +72,7 @@ application state pending = do
             modifyMVar_ state $ \s -> do
               let s' = setWebsiteConn conn s
               WS.sendTextData conn ("BEGIN DEVLIST" :: T.Text)
-              getWebcamDevices >>= (flip forM_) (sendList conn)
+              getWebcamDevices >>= mapM_ (sendList conn)
               WS.sendTextData conn ("END DEVLIST" :: T.Text)
               return s'
             talkWebsite (WebsiteConn conn) state
@@ -84,8 +84,7 @@ application state pending = do
 disconnect :: MVar ServerState -> IO ()
 disconnect state = do
   modifyMVar_ state $ \s -> do
-    s' <- closeWebcamAndDisconnect s
-    return s'
+    closeWebcamAndDisconnect s
   pure ()
 
 getMsgContents :: String -> T.Text -> T.Text
@@ -94,6 +93,6 @@ getMsgContents t = T.drop (length $ t ++ " ")
 -- Relay website messages to the webcam
 -- e.g. when to open or close the webcam stream
 talkWebsite :: WebsiteConn -> MVar ServerState -> IO ()
-talkWebsite conn@(WebsiteConn site) state = forever $ do  
-  msg <- (WS.receiveData site) :: IO T.Text
+talkWebsite conn@(WebsiteConn site) state = forever $ do
+  msg <- WS.receiveData site :: IO T.Text
   handle msg conn state

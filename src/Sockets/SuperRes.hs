@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE GADTs             #-}
-{-# LANGUAGE BangPatterns      #-}
+
 
 module Sockets.SuperRes where
 
@@ -32,14 +32,14 @@ import Debug.Trace
 
 processWithSuperRes :: WS.Connection -> SuperResolution -> IO ()
 processWithSuperRes site super = do
-  (WS.Text bs _) <- (WS.receiveDataMessage site)
+  (WS.Text bs _) <- WS.receiveDataMessage site
   print $ BSL.length bs
   img <- createImage (BSL.toStrict bs)
-  let imgYCbCr          = toImageYCbCr $ img
+  let imgYCbCr          = toImageYCbCr img
       imgY0             = map (\(PixelYCbCr y _ _ ) -> y ) . concat . toLists $ imgYCbCr
       imgCb             = map (map (\(PixelYCbCr _ cb _) -> cb)) . toLists $ imgYCbCr
       imgCr             = map (map (\(PixelYCbCr _ _ cr) -> cr)) . toLists $ imgYCbCr
-      (input, cbs, crs) = (S3D (H.fromList imgY0), imgCb, imgCr)  
+      (input, cbs, crs) = (S3D (H.fromList imgY0), imgCb, imgCr)
       out               = runNet super input
       processed         = processHighResImage out cbs crs
       outputBs          = B.encode (BSL.toStrict (encode OutputJPG [] processed))
@@ -47,7 +47,7 @@ processWithSuperRes site super = do
   WS.sendTextData site outputBs
 
 processHighResImage :: S ('D3 672 672 1) -> [[Double]] -> [[Double]] -> Image VS RGBA Double
-processHighResImage (S3D m) cbs crs = do 
+processHighResImage (S3D m) cbs crs = do
   let m'  = LA.toLists $ H.extract m      :: [[Double]]
       m'' = map (map PixelX) m'           :: [[Pixel X Double]]
       img = fromLists m''                 :: Image VS X Double

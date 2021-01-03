@@ -30,21 +30,21 @@ contentsOf msg prefix = T.drop (length prefix) msg
 
 getImageProcessor :: T.Text -> String -> Maybe ImageProcessor
 getImageProcessor msg prefix
-  | "RESNET" `T.isPrefixOf` (contentsOf msg prefix) = Just Resnet
-  | "YOLO"   `T.isPrefixOf` (contentsOf msg prefix) = Just Yolo
-  | "SUPERRES"  `T.isPrefixOf` (contentsOf msg prefix) = Just SuperRes
+  | "RESNET" `T.isPrefixOf` contentsOf msg prefix = Just Resnet
+  | "YOLO"   `T.isPrefixOf` contentsOf msg prefix = Just Yolo
+  | "SUPERRES"  `T.isPrefixOf` contentsOf msg prefix = Just SuperRes
   | otherwise = Nothing
 
 match :: T.Text -> MessageType
 match msg
   | "OPEN"  `T.isPrefixOf` msg = WebcamOn $ T.unpack (contentsOf msg "OPEN ")
   | "CLOSE" `T.isPrefixOf` msg = WebcamOff
-  | "IMAGE" `T.isPrefixOf` msg 
-    = case (getImageProcessor msg "IMAGE ") of
+  | "IMAGE" `T.isPrefixOf` msg
+    = case getImageProcessor msg "IMAGE " of
         Just processor -> Image processor
         Nothing        -> Error "IMAGE message must be followed by { RESNET | YOLO | SUPER }"
-  | "CAPTURE" `T.isPrefixOf` msg 
-    = case (getImageProcessor msg "CAPTURE ") of
+  | "CAPTURE" `T.isPrefixOf` msg
+    = case getImageProcessor msg "CAPTURE " of
         Just processor -> Capture processor
         Nothing        -> Error "CAPTURE message must be followed by { RESNET | YOLO }"
   | otherwise = Error "Message type not recognised"
@@ -54,7 +54,7 @@ dispatch conn state msgType = do
   (_, _, _, _, res, yolo, u) <- readMVar state
   case msgType of
     WebcamOn device -> openWebcam device state
-    WebcamOff       -> ((readMVar state >>= closeWebcam) >> pure ())
+    WebcamOff       -> (readMVar state >>= closeWebcam) >> pure ()
     Image Resnet    -> processWithResnet conn res
     Image Yolo      -> processWithYolo conn yolo
     Image SuperRes  -> processWithSuperRes conn u
@@ -76,10 +76,10 @@ openWebcam deviceName state = do
   modifyMVar_ state $ \(conn, _, offset, proc, net, yolo, u) -> return (conn, Just stream, offset, proc, net, yolo, u)
   pure ()
 
-processCapture :: Maybe (Double, Double) 
-               -> Maybe ImageProcessor 
-               -> S.Vector Word8 
-               -> WS.Connection 
+processCapture :: Maybe (Double, Double)
+               -> Maybe ImageProcessor
+               -> S.Vector Word8
+               -> WS.Connection
                -> (ResNet18, TinyYoloV2)
                -> IO ()
 processCapture offset proc v conn (res, yolo) = do

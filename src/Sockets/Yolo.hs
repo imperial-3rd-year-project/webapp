@@ -31,17 +31,17 @@ enableCaptureWithYolo site state = do
   modifyMVar_ state $ \(conn, stream, _, p, res, yolo, u) -> return (conn, stream, Just offset, Just Yolo, res, yolo, u)
   pure ()
 
-captureWithYolo :: (Double, Double) 
-                  -> S.Vector Word8 
-                  -> WS.Connection 
+captureWithYolo :: (Double, Double)
+                  -> S.Vector Word8
+                  -> WS.Connection
                   -> TinyYoloV2
                   -> IO ()
 captureWithYolo (x, y) v conn yolo = do
-  let v'          = resize (floor $ x, floor $ y) Device.v4l2resolution (416, 416) v
+  let v'          = resize (floor x, floor y) Device.v4l2resolution (416, 416) v
   _ <- forkIO $ do
     let input = preprocessYolo' v'
     boxes <- runYolo input yolo
-    print $ boxes
+    print boxes
     WS.sendTextData conn ("BEGIN YOLO" :: T.Text)
     forM_ boxes $ \(l, r, t, b, _, label) -> do
       WS.sendTextData conn (T.pack label)
@@ -55,7 +55,7 @@ captureWithYolo (x, y) v conn yolo = do
 
 processWithYolo :: WS.Connection -> TinyYoloV2 -> IO ()
 processWithYolo site yolo = do
-  imageData <- (WS.receiveDataMessage site) :: IO WS.DataMessage
+  imageData <- WS.receiveDataMessage site :: IO WS.DataMessage
   let (WS.Binary bs) = imageData
       decoded        = decodeForYolo bs 1
   input <- preprocessYolo (A.listArray (0, length decoded - 1) decoded)
@@ -73,10 +73,10 @@ decodeForYolo :: BSL.ByteString -> Int -> [Double]
 decodeForYolo bs i
   | BSL.null bs = []
   | i `mod` 4 == 0  = decodeForYolo (BSL.tail bs) 1
-  | otherwise       = e' : (decodeForYolo (BSL.tail bs) (i + 1))
+  | otherwise       = e' : decodeForYolo (BSL.tail bs) (i + 1)
   where
     e = fromIntegral $ BSL.head bs :: Int
-    e' = (fromIntegral e) / 255 :: Double
+    e' = fromIntegral e / 255 :: Double
 
 preprocessYolo :: A.Array Int Double -> IO (S ('D3 416 416 3))
 preprocessYolo pixels = do
@@ -86,8 +86,8 @@ preprocessYolo pixels = do
     buildMat :: Double -> Double -> Double
     buildMat i j = pixels A.! x
       where
-        chn = floor $ i / (fromIntegral 416) :: Int
-        row = (i - fromIntegral (chn * 416))
+        chn = floor $ i / 416 :: Int
+        row = i - fromIntegral (chn * 416)
         x   = floor $ ((row * 416) + j) * 3 + fromIntegral chn
 
 preprocessYolo' :: S.Vector Word8 -> S ('D3 416 416 3)
@@ -99,7 +99,7 @@ preprocessYolo' v = S3D mat
     buildMat i j = e
       where
         chn = floor $ i / 416 :: Int
-        row = (i - fromIntegral (chn * 416))
+        row = i - fromIntegral (chn * 416)
         x   = floor $ ((row * 416) + j) * 3 + fromIntegral chn
         e   = fromIntegral (v S.! x) / 255
 
@@ -107,4 +107,4 @@ runYolo :: S ('D3 416 416 3) -> TinyYoloV2 -> IO [DetectedObject]
 runYolo input yolo = do
   let y = runNet yolo input
       boxes = processOutput y 0.3
-  return $ boxes
+  return boxes
