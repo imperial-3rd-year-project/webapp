@@ -42,8 +42,8 @@ captureWithYolo (x, y) v conn yolo = do
     WS.sendTextData conn ("BEGIN YOLO" :: T.Text)
     forM_ boxes $ \(l, r, t, b, _, label) -> do
       WS.sendTextData conn (T.pack label)
-      WS.sendTextData conn (T.pack $ show l)
-      WS.sendTextData conn (T.pack $ show r)
+      WS.sendTextData conn (T.pack $ show $ 416 - l) -- We flip the image on the x axis when drawing.
+      WS.sendTextData conn (T.pack $ show $ 416 - r)
       WS.sendTextData conn (T.pack $ show t)
       WS.sendTextData conn (T.pack $ show b)
     WS.sendTextData conn ("END YOLO" :: T.Text)
