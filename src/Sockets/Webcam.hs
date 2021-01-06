@@ -40,7 +40,6 @@ import Sockets.Resnet
 import Sockets.Utils
 import Sockets.Types
 
-
 type WebcamDevice = (FilePath, String)
 
 getWebcamDevices :: IO [WebcamDevice]

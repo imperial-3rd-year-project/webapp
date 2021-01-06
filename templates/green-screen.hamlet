@@ -1,0 +1,25 @@
+<div .masthead>
+    <div .container>
+        <div .row>
+            <h1 .header>
+                Background Replacement
+            <div #webcam-input-div>
+                <div>
+                    <canvas #canvasId width="640" height="480" style="background-color: #000;">
+                <div #webcam-select>
+                    <select name="devicesId" #devicesId>
+                    <input type="button" class="btn btn-primary" value="Open Webcam" id="webcam-btn" onclick="openWebcam()">
+                <div>
+                    <input type="button" class="btn btn-success" value="Capture Background" id="capture-btn" onclick="captureBackgroundImage()">
+                <div>
+                    <label .btn .btn-primary for="upload-image-input">Upload New Background
+                    <input type="file" accept='image/*' title=" " #upload-image-input style="display:none;">
+
+
+<div .container>
+    <div .bs-docs-section>
+        <div .row>
+            <div .col-lg-12>
+                <div .page-header>
+                    <h2>Backround Replacement
+                    <p>

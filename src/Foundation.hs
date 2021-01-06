@@ -125,6 +125,11 @@ instance Yesod App where
                     { menuItemLabel = "Super Resolution"
                     , menuItemRoute = SuperImageR
                     , menuItemAccessCallback = True
+                    },
+                NavbarLeft $ MenuItem
+                    { menuItemLabel = "Green Screen"
+                    , menuItemRoute = GreenScreenR
+                    , menuItemAccessCallback = True
                     }
                 ]
 

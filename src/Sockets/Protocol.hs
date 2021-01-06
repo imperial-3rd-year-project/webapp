@@ -9,15 +9,12 @@ import qualified Data.Vector.Storable as S
 import           Data.Word8
 
 import           Graphics.Capture.Class
-import qualified Graphics.Display.Class as Disp
 import qualified Graphics.Capture.V4L2.Device as Device
-import           Graphics.Display.ConversionUtils (resize)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import           Control.Monad (when, guard)
 import           Data.Maybe
 
-import           Grenade.Utils.ImageNet
 import           Data.Vector.Storable.ByteString
 import qualified Data.ByteString as BS
 import           Grenade
@@ -26,6 +23,7 @@ import           Sockets.Utils
 import           Sockets.Types
 import           Sockets.Yolo
 import           Sockets.SuperRes
+import           Sockets.GreenScreen
 import qualified System.IO as IO
 import           System.Directory ( getCurrentDirectory )
 import           Control.Concurrent.Async
@@ -40,7 +38,8 @@ getImageProcessor msg prefix
   | "RESNET"   `T.isPrefixOf` contentsOf msg prefix = Just Resnet
   | "YOLO"     `T.isPrefixOf` contentsOf msg prefix = Just Yolo
   | "SUPERRES" `T.isPrefixOf` contentsOf msg prefix = Just SuperRes
-  | otherwise = Nothing
+  | "GS"       `T.isPrefixOf` contentsOf msg prefix = Just GreenScreen
+  | otherwise                                       = Nothing
 
 match :: T.Text -> MessageType
 match msg
@@ -49,13 +48,13 @@ match msg
   | "IMAGE" `T.isPrefixOf` msg
     = case getImageProcessor msg "IMAGE " of
         Just processor -> Image processor
-        Nothing        -> Error "IMAGE message must be followed by { RESNET | YOLO | SUPER }"
+        Nothing        -> Error "IMAGE message must be followed by { RESNET | YOLO | SUPER | GS }"
   | "CAPTURE" `T.isPrefixOf` msg
     = case getImageProcessor msg "CAPTURE " of
         Just processor -> Capture processor
-        Nothing        -> Error "CAPTURE message must be followed by { RESNET | YOLO }"
+        Nothing        -> Error "CAPTURE message must be followed by { RESNET | YOLO | GS }"
   | "COMPILE" `T.isPrefixOf` msg = Compile
-  | otherwise = Error "Message type not recognised"
+  | otherwise                    = Error "Message type not recognised"
 
 dispatch :: WS.Connection -> MVar ServerState -> MessageType -> IO ()
 dispatch conn state msgType = do
@@ -66,9 +65,11 @@ dispatch conn state msgType = do
     Image Resnet        -> processWithResnet conn resnet'
     Image Yolo          -> processWithYolo conn yolo'
     Image SuperRes      -> processWithSuperRes conn superres'
+    Image GreenScreen   -> updateNewBackground conn state
     Capture Resnet      -> enableCaptureWithResnet conn state
     Capture Yolo        -> enableCaptureWithYolo conn state
     Capture SuperRes    -> sendErr "Cannot apply super-resolution to webcam" conn
+    Capture GreenScreen -> enableGreenScreen conn state
     Compile             -> compileCode conn state
     Error errMsg        -> sendErr errMsg conn
 
@@ -82,7 +83,7 @@ openWebcam deviceName state = do
   let device = Device.newV4L2CaptureDevice deviceName
   opened <- openDevice device
   stream <- startCapture opened $ sendByteString state
-  modifyMVar_ state $ \s -> return s { webcam = Just stream }
+  modifyMVar_ state $ \s -> return s { webcam = Just stream, refBg = Nothing }
   pure ()
 
 processCapture :: MVar ServerState 
@@ -101,6 +102,7 @@ processCapture mstate v bs = do
     Resnet      -> captureWithResnet offset' v conn' resnet' >> WS.sendBinaryData conn' bs >> stopRepeat
     Yolo        -> captureWithYolo   offset' v conn' yolo'   >> WS.sendBinaryData conn' bs >> stopRepeat
     SuperRes    -> undefined
+    GreenScreen -> replaceBackground mstate v bs                                           >> stopRepeat
 
 sendByteString :: MVar ServerState -> S.Vector Word8 -> IO ()
 sendByteString mstate v = do
@@ -108,8 +110,9 @@ sendByteString mstate v = do
   guard $ isJust (conn state)
   let Just (WebsiteConn conn') = conn state
       bs = vectorToByteString v
+      offset'  = offset  state
       imgProc' = imgProc state
-  if isJust imgProc'
+  if isJust offset' && isJust imgProc'
     then processCapture mstate v bs
     else WS.sendBinaryData conn' bs
 
@@ -158,4 +161,3 @@ compileCode conn mstate = do
   a2 <- async $ sendOutput herr conn
   waitBoth a1 a2
   pure ()
-

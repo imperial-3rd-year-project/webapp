@@ -55,9 +55,7 @@ captureWithResnet (x, y) v conn res = do
 
 processWithResnet :: WS.Connection -> ResNet18 -> IO ()
 processWithResnet site res = do
-  putStrLn "HELLO"
   imageData <- WS.receiveDataMessage site :: IO WS.DataMessage
-  putStrLn "RECEIVED"
   let (WS.Binary bs) = imageData
       decoded        = decodeForResnet bs 1
   input <- preprocessResnet (A.listArray (0, length decoded - 1) decoded)
