@@ -26,7 +26,7 @@
                             <select name="devicesId" #devicesId>
                             <input type="button" class="btn btn-primary" value="Open Webcam" id="webcam-btn" onclick="openWebcam()">
                         <div>
-                            <input type="button" class="btn btn-success" value="Capture" id="capture-btn" onclick="captureImage()">
+                            <input type="button" class="btn btn-success" value="Capture" id="capture-btn" onclick="captureImage()" style="display:none;">
                 <div #object-label>
 
 

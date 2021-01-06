@@ -8,11 +8,8 @@ import qualified Data.Vector.Storable as S
 import           Data.Word8
 import           Grenade
 import qualified Data.ByteString.Lazy as BSL
-import qualified Numeric.LinearAlgebra as LA
 import qualified Numeric.LinearAlgebra.Static as H
 import qualified Data.Array as A
-import           Data.Function (on)
-import           Data.List (sortBy)
 import qualified Network.WebSockets as WS
 import qualified Data.Text as T
 import           Sockets.Utils
@@ -45,8 +42,8 @@ captureWithYolo (x, y) v conn yolo = do
     WS.sendTextData conn ("BEGIN YOLO" :: T.Text)
     forM_ boxes $ \(l, r, t, b, _, label) -> do
       WS.sendTextData conn (T.pack label)
-      WS.sendTextData conn (T.pack $ show l)
-      WS.sendTextData conn (T.pack $ show r)
+      WS.sendTextData conn (T.pack $ show $ 416 - l) -- We flip the image on the x axis when drawing.
+      WS.sendTextData conn (T.pack $ show $ 416 - r)
       WS.sendTextData conn (T.pack $ show t)
       WS.sendTextData conn (T.pack $ show b)
     WS.sendTextData conn ("END YOLO" :: T.Text)
@@ -106,5 +103,5 @@ preprocessYolo' v = S3D mat
 runYolo :: S ('D3 416 416 3) -> TinyYoloV2 -> IO [DetectedObject]
 runYolo input yolo = do
   let y = runNet yolo input
-      boxes = processOutput y 0.3
+      boxes = processOutput y 0.3 0.5
   return boxes

@@ -119,7 +119,7 @@ setWebsiteConn site s = s { conn = Just (WebsiteConn site) }
 closeWebcam :: ServerState -> IO ServerState
 closeWebcam s = do
   let stream = webcam s
-  when (isJust stream) $ let Just stream' = stream in stopCapture stream' >> pure ()
+  when (isJust stream) $ let Just stream' = stream in stopCapture stream' >>= closeDevice >> pure ()
   return s { webcam = Nothing, offset = Nothing, imgProc = Nothing }
 
 closeWebcamAndDisconnect :: ServerState -> IO ServerState

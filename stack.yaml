@@ -34,7 +34,7 @@ extra-deps:
   - git: git@gitlab.doc.ic.ac.uk:g206002126/haskell-webcam.git
     commit: 85f8fcfe0f5a283768cec9db719db2beb79b35ff
   - git: git@gitlab.doc.ic.ac.uk:g206002126/grenade.git
-    commit: 45a3248e1a9f286865ceed1f3d9e9905447948b3
+    commit: ab928400dca69708dfb1e606a890c0cd5cce45f4
 # - acme-missiles-0.3
 #- git: https://github.com/commercialhaskell/stack.git
 #  commit: 61f8151fe9102a4a2a69fa6947e9980ad05693da
