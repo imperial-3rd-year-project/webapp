@@ -104,4 +104,4 @@ runYolo :: S ('D3 416 416 3) -> TinyYoloV2 -> IO [DetectedObject]
 runYolo input yolo = do
   let y = runNet yolo input
       boxes = processOutput y 0.3 0.5
-  return $ boxes
+  return boxes
