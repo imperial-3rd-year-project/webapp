@@ -12,18 +12,17 @@ import qualified Numeric.LinearAlgebra.Static as H
 import qualified Data.Array as A
 import qualified Network.WebSockets as WS
 import qualified Data.Text as T
-import           Sockets.Utils
+
 import           Sockets.Types
 import           Control.Concurrent (MVar, modifyMVar_, forkIO)
 import           Grenade.Utils.PascalVoc
-import           Grenade.Networks.TinyYoloV2
 import           Control.Monad (forM_)
 
 import qualified Graphics.Capture.V4L2.Device as Device
 import           Graphics.Display.ConversionUtils (resize)
 
 enableCaptureWithYolo :: WS.Connection -> MVar ServerState -> IO ()
-enableCaptureWithYolo site state = do
+enableCaptureWithYolo _ state = do
   let offset' = (112, 32) :: (Double, Double)
   modifyMVar_ state $ \s -> return s {offset = Just offset', imgProc = Just Yolo}
   pure ()

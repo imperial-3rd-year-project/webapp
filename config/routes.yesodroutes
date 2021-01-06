@@ -23,3 +23,5 @@
 /objectdetect ObjectDetectR GET
 
 /superimage SuperImageR GET
+
+/greenscreen GreenScreenR GET
