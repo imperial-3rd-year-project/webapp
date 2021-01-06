@@ -90,12 +90,12 @@ packages:
     version: 0.1.1
     git: git@gitlab.doc.ic.ac.uk:g206002126/grenade.git
     pantry-tree:
-      size: 12370
-      sha256: 9d1a2e39e96b7420d2566790ffb533c875d542f72bb105ed1d134739b650a2b6
-    commit: 90ae172ac053594f5240abd83fc1d082244c53e5
+      size: 14592
+      sha256: 6790f5f4db36c83540458c787b05c6797d5316b9382de472363bd3a85470aa5a
+    commit: ab928400dca69708dfb1e606a890c0cd5cce45f4
   original:
     git: git@gitlab.doc.ic.ac.uk:g206002126/grenade.git
-    commit: 90ae172ac053594f5240abd83fc1d082244c53e5
+    commit: ab928400dca69708dfb1e606a890c0cd5cce45f4
 snapshots:
 - completed:
     size: 532177
