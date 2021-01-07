@@ -112,7 +112,7 @@ sendByteString mstate v = do
       bs = vectorToByteString v
       offset'  = offset  state
       imgProc' = imgProc state
-  if isJust offset' && isJust imgProc'
+  if isJust imgProc'
     then processCapture mstate v bs
     else WS.sendBinaryData conn' bs
 
