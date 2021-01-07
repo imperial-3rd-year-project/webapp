@@ -64,17 +64,15 @@ application state pending = do
   conn <- WS.acceptRequest pending
   WS.withPingThread conn 5 (return ()) $ do
     msg <- WS.receiveData conn :: IO T.Text
-    let isWebsite = "HELLO" `T.isPrefixOf` msg
-    case msg of
-      _ | not isWebsite -> WS.sendTextData conn ("First message must say hello" :: T.Text)
-        | otherwise -> flip finally (disconnect state) $ do
-            modifyMVar_ state $ \s -> do
-              let s' = setWebsiteConn conn s
-              WS.sendTextData conn ("BEGIN DEVLIST" :: T.Text)
-              getWebcamDevices >>= mapM_ (sendList conn)
-              WS.sendTextData conn ("END DEVLIST" :: T.Text)
-              return s'
-            talkWebsite (WebsiteConn conn) state
+    flip finally (disconnect state) $ do
+      modifyMVar_ state $ \s -> do
+        let s' = setWebsiteConn conn s
+        when ("WEBCAM" `T.isPrefixOf` msg) $ do
+          WS.sendTextData conn ("BEGIN DEVLIST" :: T.Text)
+          getWebcamDevices >>= mapM_ (sendList conn)
+          WS.sendTextData conn ("END DEVLIST" :: T.Text)
+        return s'
+      talkWebsite (WebsiteConn conn) state
   where
     sendList :: WS.Connection -> WebcamDevice -> IO ()
     sendList conn (path, name) = do

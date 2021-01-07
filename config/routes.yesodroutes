@@ -6,17 +6,13 @@
 /favicon.ico FaviconR GET
 /robots.txt RobotsR GET
 
-/ HomeR GET POST
-
-/comments CommentR POST
+/ HomeR GET
 
 /response MnistResponseR POST
 
 /mnist MnistR GET 
 
 /tutorial TutorialR GET
-
-/runcode RunCodeR POST
 
 /imageclass ImageClassR GET
 

@@ -1,4 +1,4 @@
-#canvasId {
+#canvas {
   margin-top: 24px;
   box-shadow: 0 10px 5px rgba(0, 0, 0, 0.2);
   border-radius: 12px;

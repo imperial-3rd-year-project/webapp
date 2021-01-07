@@ -87,12 +87,8 @@ instance Yesod App where
     defaultLayout :: Widget -> Handler Html
     defaultLayout widget = do
         master <- getYesod
-        mmsg <- getMessage
 
         mcurrentRoute <- getCurrentRoute
-
-        -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.
-        (title, parents) <- breadcrumbs
 
         -- Define the menu items of the header.
         let menuItems =
@@ -149,6 +145,8 @@ instance Yesod App where
             addStylesheet $ StaticR css_bootstrap_css
             addStylesheet $ StaticR css_prism_css
             addScript     $ StaticR js_prism_js
+            addScript     $ StaticR js_socket_js
+            addScript     $ StaticR js_utils_js
             $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 

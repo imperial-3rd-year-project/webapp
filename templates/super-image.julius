@@ -1,43 +1,31 @@
-let socketOpened = false;
-let socket, canvas;
 // These are arrays of data which we can
 // clip onto the canvas
 
 const IMG_SIZE = 224;
 const SCALED_SIZE = 672;
 
-window.onload = function() {
-    // Create WebSocket connection.
-    socket = new WebSocket('ws://127.0.0.1:9160');
-    socket.binaryType = 'arraybuffer';
+window.onload = function () {
+    // Connection opened    
+    initialiseSocket({});
+    let onImageReceive = function (event) {
+        console.log(event.data);
+        console.log(header);
+        document.getElementById("processed-image").src = header + 'base64,' + event.data;
+        document.getElementById("img-comp-container-processed").hidden = false;
+        document.getElementById("process-message").innerHTML = "";
+        initComparisons();
+    };
+    addSocketHandler(SOCKET_RECEIVE_WEBCAM_FRAME, onImageReceive);
+    setSocketHandler();
 
-    // Connection opened
-    socket.addEventListener('open', function (event) {
-        socket.send('HELLO');
-    });
-
-    // Listen for messages
-    socket.addEventListener('message', function (event) {
-        if (event.data.toString().startsWith("ERR")) {
-            console.log(event.data);
-        } else {
-            console.log(event.data);
-            console.log(header);
-            document.getElementById("processed-image").src = header + 'base64,' + event.data;
-            document.getElementById("img-comp-container-processed").hidden = false;
-            document.getElementById("process-message").innerHTML = "";
-            initComparisons();
-        }
-    });
-
-    document.getElementById("upload-image-input").onchange = function(event) {
+    document.getElementById("upload-image-input").onchange = function (event) {
         let input = event.target;
         let reader = new FileReader();
 
-        reader.onload = function(){
+        reader.onload = function () {
             dataURL = reader.result;
             document.getElementById("process-message").innerHTML = "Processing image...";
-            
+
             socket.send('IMAGE SUPERRES');
             const originalImage = dataURL;
             base64String = originalImage.split("base64,")[1];
@@ -89,7 +77,7 @@ function initComparisons() {
         window.addEventListener("mouseup", slideFinish);
         /* Or touched (for touch screens: */
         slider.addEventListener("touchstart", slideReady);
-         /* And released (for touch screens: */
+        /* And released (for touch screens: */
         window.addEventListener("touchend", slideFinish);
 
         function slideReady(e) {

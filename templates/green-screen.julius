@@ -1,123 +1,81 @@
-let socketOpened = false;
-let socket, canvas;
-let fetchingDevices = false;
-let fetchingYolo = false;
-let devices = [];
-let boundingBoxes = [];
-let currBox = [];
-let detail = 0;
 let dataURL;
-let lastWebcamImage;
-let backgroundData;
-let replacement;
+let captured = false;
 
 const w = 640;
 const h = 480;
 const p = w * h;
 
-window.onload = function() {
+window.onload = function () {
+    let webcamCanvas = document.getElementById("canvas");
+    let webcamCtx = webcamCanvas.getContext("2d");
     // Setup webcam canvas
-	canvas = document.getElementById("canvasId");
-    let ctx = canvas.getContext('2d');
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    webcamCtx.fillRect(0, 0, webcamCanvas.width, webcamCanvas.height);
+    
+    // Setup sockets
+    let initialState = {
+        webcamCanvas: webcamCanvas,
+        webcamCtx: webcamCtx,
+        drawBoxes: false
+    };
+    let state = buildState(initialState).withWebcam().withYolo().build();
+    
+    initialiseSocket(state);
+    // Order is important!
+    addSocketHandler(SOCKET_BEGIN_DEVICES, onBeginDevices);
+    addSocketHandler(SOCKET_END_DEVICES, onEndDevices);
+    addSocketHandler(SOCKET_RECEIVE_DEVICE, onReceiveDevice);
+    
+    addSocketHandler(SOCKET_BEGIN_YOLO, onYoloBegin);
+    addSocketHandler(SOCKET_END_YOLO, onYoloEnd);
+    addSocketHandler(SOCKET_RECEIVE_YOLO, onYoloReceive);
+    
+    addSocketHandler(SOCKET_RECEIVE_WEBCAM_FRAME, onWebcamFrame);
+    setSocketHandler();
 
-	// Create WebSocket connection.
-	socket = new WebSocket('ws://127.0.0.1:9160');
-    socket.binaryType = 'arraybuffer';
-
-	// Connection opened
-	socket.addEventListener('open', function (event) {
-		socket.send('HELLO');
-	});
-
-	socket.addEventListener('message', function (event) {
-	// Listen for messages
-        if (event.data === "BEGIN DEVLIST") {
-            fetchingDevices = true;
-        } else if (event.data === "END DEVLIST") {
-            fetchingDevices = false;
-            // Set the options
-            let devicesSelect = document.getElementById("devicesId");
-            devices.reverse();
-            for (let device of devices) {
-                let option = document.createElement("option");
-                option.text = device[0] + ": " + device[1];
-                console.log(option.text);
-                devicesSelect.add(option);
-            }
-        } else if (fetchingDevices) {
-            // Parse device type
-            const devicePath = event.data.substr(0, event.data.indexOf('$'));
-            const deviceName = event.data.substr(event.data.indexOf('$') + 1);
-            const details = [devicePath, deviceName];
-            devices.push(details);
-        } else if (event.data.toString().startsWith("ERR")) {
-            console.log(event.data);
-        } else if (event.data === "BEGIN YOLO") {
-            fetchingYolo = true;
-            boundingBoxes = [];
-        } else if (event.data === "END YOLO") {;
-            fetchingYolo = false;
-            // draw bounding boxes on the image
-            // drawBoundingBoxes(boundingBoxes, canvas.getContext('2d'));
-        } else if (fetchingYolo) {
-            console.log(event.data);
-            currBox.push(event.data);
-            detail++;
-            if (detail == 5) {
-                detail = 0;
-                boundingBoxes.push(currBox);
-                currBox = [];
-            }
-        } else {
-            let arr = new Uint8Array(event.data);
-            let n = p * 4;
-            let s = 0;
-            let d = 0;
-            dest = ctx.getImageData(0, 0, w, h);
-            while (d < n) {
-                dest.data[d++] = arr[s++];
-                dest.data[d++] = arr[s++];
-                dest.data[d++] = arr[s++];
-                d++;
-            }
-            ctx = canvas.getContext('2d');
-            ctx.putImageData(dest, 0, 0);
-        }
-	});
-
-
-  document.getElementById("upload-image-input").onchange = function(event) {
-      let input = event.target;
-      let reader = new FileReader();
-      reader.onload = function() {
-          let dataURL = reader.result;
-          let img = new Image();
-          img.onload = function () {
-              let canvas = document.createElement('canvas');
-              canvas.width = 640;
-              canvas.height = 480;
-              let ctx = canvas.getContext('2d');
-              if (img.width > img.height) {
-                  let w = img.width * (480/ img.height);
-                  ctx.drawImage(img, 0, 0, w, 480);
-              } else {
-                  let h = img.height * (640 / img.width);
-                  ctx.drawImage(img, 0, 0, 640, h);
-              }
-              socket.send('IMAGE GS');
-              let buff = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data.buffer;
-              socket.send(buff);
-          };
-          img.src = dataURL;
-      };
-      reader.readAsDataURL(input.files[0]);
-  };
+    document.getElementById("upload-image-input").onchange = function (event) {
+        let input = event.target;
+        let reader = new FileReader();
+        reader.onload = function () {
+            let dataURL = reader.result;
+            let img = new Image();
+            img.onload = function () {
+                let canvas = document.createElement('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                let ctx = canvas.getContext('2d');
+                if (img.width > img.height) {
+                    let w = img.width * (480 / img.height);
+                    ctx.drawImage(img, 0, 0, w, 480);
+                } else {
+                    let h = img.height * (640 / img.width);
+                    ctx.drawImage(img, 0, 0, 640, h);
+                }
+                sendMsg(IMAGE.GREENSCREEN);
+                let buff = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data.buffer;
+                sendData(buff);
+            };
+            img.src = dataURL;
+        };
+        reader.readAsDataURL(input.files[0]);
+    };
 
 };
 
+function onYoloEnd(event, state) {
+    state.fetchingYolo = false;
+    if (state.drawBoxes) {
+        drawBoundingBoxes(state.boundingBoxes, state.webcamCanvas.getContext('2d'));
+    }
+}
+
+function onWebcamFrame(event, state) {
+    if (!captured) {
+        drawWebcamImage(event, state);
+    }
+}
+
 function openWebcam() {
-    let deviceSelect = document.getElementById("devicesId");
+    let deviceSelect = document.getElementById("devices");
     let device = deviceSelect.value.split(":")[0];
 
     socket.send('OPEN ' + device);
@@ -127,27 +85,39 @@ function openWebcam() {
 
 function closeWebcam() {
     socket.send('CLOSE');
-    let ctx = canvas.getContext('2d');
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    let webcamCanvas = document.getElementById("canvas");
+    let webcamCtx = canvas.getContext('2d');
+    webcamCtx.fillRect(0, 0, webcamCanvas.width, webcamCanvas.height);
     document.getElementById("webcam-btn").value = "Open Webcam"
     document.getElementById("webcam-btn").onclick = openWebcam;
 }
 
 function captureBackgroundImage() {
     // Save the current canvas after a timer
-    const TIMER = 5;
-    setTimeout(function() {
-        let canvas = document.getElementById("canvasId");
-        let ctx = canvas.getContext('2d');
-        backgroundData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        socket.send('CAPTURE GS');
-        // Change the capture button
-        const captureBtn = document.getElementById('capture-btn');
+    const TIMER = 5000;
+    const captureBtn = document.getElementById('capture-btn');
+    captureBtn.disabled = true;
+    captureBtn.value = "5";
+    setTimeout(function () {        
+        sendMsg(CAPTURE.GREENSCREEN);
         captureBtn.value = "Capture";
         captureBtn.onclick = captureImage;
+        captureBtn.disabled = false;
     }, TIMER);
-}
 
+    setTimeout(function () {
+        captureBtn.value = "4";
+        setTimeout(function () {
+        captureBtn.value = "3";
+        setTimeout(function () {
+        captureBtn.value = "2";
+        setTimeout(function () {
+        captureBtn.value = "1";
+        }, TIMER / 5);
+        }, TIMER / 5);
+        }, TIMER / 5);
+    }, TIMER / 5);
+}
 
 function captureImage() {
     socket.send('CAPTURE GS');
@@ -158,40 +128,11 @@ function captureImage() {
 
 function reset() {
     // Open the webcam again
-    let deviceSelect = document.getElementById("devicesId");
+    let deviceSelect = document.getElementById("devices");
     let device = deviceSelect.value.split(":")[0];
-    socket.send('OPEN ' + device);
+    sendMsg(WEBCAM.OPEN, device);
 
     const captureBtn = document.getElementById('capture-btn');
     captureBtn.value = "Capture Background";
     captureBtn.onclick = captureBackgroundImage;
-}
-
-function drawBoundingBoxes(boxes, ctx, offsetX, offsetY) {
-    /*
-        boxes: [ [label: str, l: int, r: int, t: int, b: int] ]
-    */
-    for (let box of boxes) {
-        ctx.beginPath();
-        let x = Math.max(0, parseInt(box[1]));
-        let y = Math.max(0, parseInt(box[3]));
-        const w = parseInt(box[2]) - x;
-        const h = parseInt(box[4]) - y;
-        if (offsetX != null && offsetY != null) {
-            x += offsetX;
-            y += offsetY;
-        }
-        ctx.rect(x, y, w, h);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = 'rgb(255, 0, 0)';
-        ctx.stroke();
-
-        ctx.font = '12px monospace';
-        ctx.fillStyle = 'rgb(255, 0, 0)';
-        let dist = 10;
-        if (y - dist < 5) {
-            dist = -10;
-        }
-        ctx.fillText(box[0], x, y - dist);
-    }
 }

@@ -1,143 +1,35 @@
-let socketOpened = false;
-let socket, canvas;
-let fetchingDevices = false,
-    fetchingYolo = false,
-    webcamPaused = false,
-    webcamProcessing = false,
-    drawOverlay = false,
-    detail = 0,
-    currBox = [];
-let devices = [],
-    boundingBoxes = [];
-let dataURL;
-let lastWebcamImage;
+let dataURL, lastWebcamImage;
+let captured = false;
 
 const w = 640;
 const h = 480;
 const p = w * h;
 
-window.onload = function() {
+window.onload = function () {
+    let webcamCanvas = document.getElementById("canvas");
+    let webcamCtx = webcamCanvas.getContext("2d");
     // Setup webcam canvas
-	canvas = document.getElementById("canvasId");
-    let ctx = canvas.getContext('2d');
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-	// Create WebSocket connection.
-	socket = new WebSocket('ws://127.0.0.1:9160');
-    socket.binaryType = 'arraybuffer';
-
-	// Connection opened
-	socket.addEventListener('open', function (event) {
-		socket.send('HELLO');
-	});
-
-	// Listen for messages
-	socket.addEventListener('message', function (event) {
-        if (event.data === "BEGIN DEVLIST") {
-            fetchingDevices = true;
-        } else if (event.data === "END DEVLIST") {
-            fetchingDevices = false;
-            // Set the options
-            let devicesSelect = document.getElementById("devicesId");
-            devices.reverse();
-            for (let device of devices) {
-                let option = document.createElement("option");
-                option.text = device[0] + ": " + device[1];
-                console.log(option.text);
-                devicesSelect.add(option);
-            }
-        } else if (fetchingDevices) {
-            // Parse device type
-            const devicePath = event.data.substr(0, event.data.indexOf('$'));
-            const deviceName = event.data.substr(event.data.indexOf('$') + 1);
-            const details = [devicePath, deviceName];
-            devices.push(details);
-        } else if (event.data.toString().startsWith("ERR")) {
-            console.log(event.data);
-        } else if (event.data === "BEGIN YOLO") {
-            fetchingYolo = true;
-            boundingBoxes = [];
-        } else if (event.data === "END YOLO") {;
-            fetchingYolo = false;
-            if (!document.getElementById("image-input-checkbox").checked) {
-                // draw bounding boxes on the image
-                const imgCtx = document.getElementById('uploaded-image').getContext('2d');
-                if (boundingBoxes.length == 0) {
-                  document.getElementById("object-label").innerHTML = 'No objects detected.';
-                } else {
-                  document.getElementById("object-label").innerHTML = 'Objects detected!';
-                }
-                drawBoundingBoxes(boundingBoxes, imgCtx);
-            }
-        } else if (fetchingYolo) {
-            console.log(event.data);
-            currBox.push(event.data);
-            detail++;
-            if (detail == 5) {
-                detail = 0;
-                boundingBoxes.push(currBox);
-                currBox = [];
-            }
-        } else if (event.data === "RESUME FEED") {
-            // TODO: If yolo is not fast enough, then we want to
-            // just replace the image feed with a still shot
-            // and change the "capture button" to "new capture"
-            // to start the feed again
-            webcamProcessing = false;
-            const captureBtn = document.getElementById('capture-btn');
-            captureBtn.value = "New Image";
-            captureBtn.onclick = clearCapturedImage;
-            drawOverlay = false;
-            console.log(boundingBoxes);
-            const imgCtx = document.getElementById('uploaded-image').getContext('2d');
-            if (boundingBoxes.length == 0) {
-              document.getElementById("object-label").innerHTML = 'No objects detected.';
-            } else {
-              document.getElementById("object-label").innerHTML = 'Objects detected!';
-            }
-            drawBoundingBoxes(boundingBoxes, ctx);
-        } else if (!webcamPaused) {
-            // Keep updating canvas with new camera photo.
-            let arr = new Uint8Array(event.data);
-            let dest = ctx.getImageData(0, 0, w, h);
-            for (let y = 0; y < h; y++) {
-              for (let x = 0; x < w; x++) {
-                const sIndex = w * y + x;
-                const dIndex = w * y + (w - x - 1);
-                dest.data[dIndex * 4 + 0] = arr[sIndex * 3 + 0];
-                dest.data[dIndex * 4 + 1] = arr[sIndex * 3 + 1];
-                dest.data[dIndex * 4 + 2] = arr[sIndex * 3 + 2];
-              }
-            }
-            ctx = canvas.getContext('2d');
-            ctx.putImageData(dest, 0, 0);
-        } else if (webcamProcessing) {
-            // Waiting for results from yolo.
-            const prevFillStyle = ctx.fillStyle;
-            ctx.fillStyle = 'rgb(0, 255, 0)';
-            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            ctx.fillStyle = prevFillStyle;
-            ctx.font = 'bolder 50px monospace';
-            ctx.fillStyle = 'rgb(0, 0, 0)';
-            ctx.fillText("WE'LL", 30, 55);
-            ctx.fillText("BE", 30, 110);
-            ctx.fillText("RIGHT", 30, 165);
-            ctx.fillText("BACK", 30, 220);
-            ctx.fillStyle = 'rgb(255, 255, 255)';
-            ctx.fillText("WE'LL", 27, 52);
-            ctx.fillText("BE", 27, 107);
-            ctx.fillText("RIGHT", 27, 162);
-            ctx.fillText("BACK", 27, 217);
-            ctx.fillStyle = prevFillStyle;
-        } else {
-            ctx.putImageData(lastWebcamImage, 0, 0);
-            const imgCtx = document.getElementById('uploaded-image').getContext('2d');
-            if (boundingBoxes.length > 0) {
-              document.getElementById("object-label").innerHTML = 'Objects detected!';
-            }
-            drawBoundingBoxes(boundingBoxes, ctx, 112, 32);
-        }
-	});
+    webcamCtx.fillRect(0, 0, webcamCanvas.width, webcamCanvas.height);
+    
+    // Setup sockets
+    let initialState = {
+        webcamCanvas: webcamCanvas,
+        webcamCtx: webcamCtx
+    };
+    let state = buildState(initialState).withWebcam().withYolo().build();
+    
+    initialiseSocket(state);
+    // Order is important!
+    addSocketHandler(SOCKET_BEGIN_DEVICES, onBeginDevices);
+    addSocketHandler(SOCKET_END_DEVICES, onEndDevices);
+    addSocketHandler(SOCKET_RECEIVE_DEVICE, onReceiveDevice);
+    
+    addSocketHandler(SOCKET_BEGIN_YOLO, onYoloBegin);
+    addSocketHandler(SOCKET_END_YOLO, onYoloEnd);
+    addSocketHandler(SOCKET_RECEIVE_YOLO, onYoloReceive);
+    
+    addSocketHandler(SOCKET_RECEIVE_WEBCAM_FRAME, onWebcamFrame);
+    setSocketHandler();
 
     // Switch input modes
     const inputCheckbox = document.getElementById("image-input-checkbox");
@@ -155,27 +47,27 @@ window.onload = function() {
         document.getElementById("object-label").innerHTML = '';
     });
 
-    document.getElementById("upload-image-input").onchange = function(event) {
+    document.getElementById("upload-image-input").onchange = function (event) {
         let input = event.target;
         let reader = new FileReader();
         document.getElementById("object-label").innerHTML = 'Detecting objects...';
-        reader.onload = function(){
+        reader.onload = function () {
             dataURL = reader.result;
             let img = new Image();
             let output = document.getElementById('uploaded-image');
-            let ctx = output.getContext('2d');
-            img.onload = function() {
+            let imgCtx = output.getContext('2d');
+            img.onload = function () {
                 if (img.width > img.height) {
                     let w = img.width * (416 / img.height);
-                    ctx.drawImage(img, 0, 0, w, 416);
+                    imgCtx.drawImage(img, 0, 0, w, 416);
                 } else {
-                    let h = img.height * (416/ img.width);
-                    ctx.drawImage(img, 0, 0, 416, h);
+                    let h = img.height * (416 / img.width);
+                    imgCtx.drawImage(img, 0, 0, 416, h);
                 }
 
-                socket.send('IMAGE YOLO');
-                let buff = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data.buffer;
-                socket.send(buff);
+                sendMsg(IMAGE.YOLO);
+                let buff = imgCtx.getImageData(0, 0, output.width, output.height).data.buffer;
+                sendData(buff);
 
             };
             img.src = dataURL;
@@ -184,69 +76,98 @@ window.onload = function() {
     };
 };
 
+function onWebcamFrame(event, state) {
+    if (!captured) {
+        drawWebcamImage(event, state);
+    }
+}
+
 function openWebcam() {
-    let deviceSelect = document.getElementById("devicesId");
+    let deviceSelect = document.getElementById("devices");
     let device = deviceSelect.value.split(":")[0];
-    socket.send('OPEN ' + device);
+    sendMsg(WEBCAM.OPEN, device);
     document.getElementById("capture-btn").style.display = "inline-block";
     document.getElementById("webcam-btn").value = "Close Webcam"
     document.getElementById("webcam-btn").onclick = closeWebcam;
 }
 
-function drawBoundingBoxes(boxes, ctx, offsetX, offsetY) {
-    /*
-        boxes: [ [label: str, l: int, r: int, t: int, b: int] ]
-    */
-    for (let box of boxes) {
-        ctx.beginPath();
-        let x = Math.max(0, parseInt(box[1]));
-        let y = Math.max(0, parseInt(box[3]));
-        const w = parseInt(box[2]) - x;
-        const h = parseInt(box[4]) - y;
-        if (offsetX != null && offsetY != null) {
-            x += offsetX;
-            y += offsetY;
-        }
-        ctx.rect(x, y, w, h);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = 'rgb(255, 0, 0)';
-        ctx.stroke();
-
-        const prevFillStyle = ctx.fillStyle;
-        ctx.font = '12px monospace';
-        ctx.fillStyle = 'rgb(255, 0, 0)';
-        let dist = 10;
-        if (y - dist < 5) {
-            dist = -10;
-        }
-        ctx.fillText(box[0], x, y - dist);
-        ctx.fillStyle = prevFillStyle;
-    }
-}
-
 function closeWebcam() {
-    socket.send('CLOSE');
-    let ctx = canvas.getContext('2d');
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    sendMsg(WEBCAM.CLOSE);
+    let webcamCanvas = document.getElementById("canvas");
+    let webcamCtx = webcamCanvas.getContext("2d");
+    webcamCtx.fillStyle = 'rgb(0, 0, 0)';
+    webcamCtx.fillRect(0, 0, webcamCanvas.width, webcamCanvas.height);
     clearCapturedImage();
     document.getElementById("capture-btn").style.display = "none";
     document.getElementById("webcam-btn").value = "Open Webcam";
     document.getElementById("webcam-btn").onclick = openWebcam;
     document.getElementById("object-label").innerHTML = '';
+}
 
+function onYoloEnd(event, state) {
+    state.fetchingYolo = false;
+    captured = false;
+    if (state.boundingBoxes.length == 0) {
+        document.getElementById("object-label").innerHTML = 'No objects detected.';
+    } else {
+        document.getElementById("object-label").innerHTML = 'Objects detected!';
+    }
+    if (!document.getElementById("image-input-checkbox").checked) {
+        // draw bounding boxes on the image
+        const imgCtx = document.getElementById('uploaded-image').getContext('2d');
+        drawBoundingBoxes(state.boundingBoxes, imgCtx);
+    } else {
+        // draw bounding boxes on top of webcam image
+        const webcamCtx = document.getElementById('canvas').getContext('2d');
+        webcamCtx.putImageData(lastWebcamImage, 0, 0);
+        const captureBtn = document.getElementById('capture-btn');
+        captureBtn.value = "New Image";
+        captureBtn.disabled = false;
+        captureBtn.onclick = function () {
+            let deviceSelect = document.getElementById("devices");
+            let device = deviceSelect.value.split(":")[0];
+            sendMsg(WEBCAM.OPEN, device);
+            clearCapturedImage();
+        };
+        console.log(state.boundingBoxes);
+        drawBoundingBoxes(state.boundingBoxes, webcamCtx);
+    }
+}
+
+function displayWaitMessage(webcamCanvas, webcamCtx) {
+    const prevFillStyle = webcamCtx.fillStyle;
+    
+    webcamCtx.fillStyle = 'rgb(0, 255, 0)';
+    webcamCtx.fillRect(0, 0, webcamCanvas.width, webcamCanvas.height);
+    
+    webcamCtx.font = 'bolder 50px monospace';
+    webcamCtx.fillStyle = 'rgb(0, 0, 0)';
+    webcamCtx.fillText("WE'LL", 30, 55);
+    webcamCtx.fillText("BE", 30, 110);
+    webcamCtx.fillText("RIGHT", 30, 165);
+    webcamCtx.fillText("BACK", 30, 220);
+    
+    webcamCtx.fillStyle = 'rgb(255, 255, 255)';
+    webcamCtx.fillText("WE'LL", 27, 52);
+    webcamCtx.fillText("BE", 27, 107);
+    webcamCtx.fillText("RIGHT", 27, 162);
+    webcamCtx.fillText("BACK", 27, 217);
+    
+    webcamCtx.fillStyle = prevFillStyle;
 }
 
 function captureImage() {
-    webcamPaused = true;
-    webcamProcessing = true;
-    boundingBoxes = [];
     document.getElementById("object-label").innerHTML = 'Detecting objects...';
-    socket.send('CAPTURE YOLO');
-    lastWebcamImage = canvas.getContext('2d').getImageData(0, 0, w, h);
+    let webcamCanvas = document.getElementById("canvas");
+    let webcamCtx = webcamCanvas.getContext("2d");
+    lastWebcamImage = webcamCtx.getImageData(0, 0, w, h);
+    sendMsg(CAPTURE.YOLO);
+    captured = true;
+    document.getElementById("capture-btn").disabled = true;
+    displayWaitMessage(webcamCanvas, webcamCtx);
 }
 
 function clearCapturedImage() {
-    webcamPaused = false;
     document.getElementById('capture-btn').value = "Capture";
     document.getElementById('capture-btn').onclick = captureImage;
 }

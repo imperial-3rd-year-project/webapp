@@ -1,36 +1,36 @@
 let canvas, ctx, flag = false,
-		prevX = 0,
-		currX = 0,
-		prevY = 0,
-		currY = 0;
+    prevX = 0,
+    currX = 0,
+    prevY = 0,
+    currY = 0;
 
 const colour = "black",
-	  thickness = 5;
+    thickness = 5;
 
 let imageData = [];
 const sf = 2;
 const dims = "280px";
 
-window.onload = function() {
-	canvas = document.getElementById(#{toJSON canvasId});
+window.onload = function () {
+    canvas = document.getElementById(#{ toJSON canvasId });
     canvas.style.width = dims;
     canvas.style.height = dims;
-	ctx = canvas.getContext("2d");
-	w = canvas.width;
-	h = canvas.height;
+    ctx = canvas.getContext("2d");
+    w = canvas.width;
+    h = canvas.height;
 
-	canvas.addEventListener("mousemove", function (e) {
-		findxy('move', e)
-	}, false);
-	canvas.addEventListener("mousedown", function (e) {
-		findxy('down', e)
-	}, false);
-	canvas.addEventListener("mouseup", function (e) {
-		findxy('up', e)
-	}, false);
-	canvas.addEventListener("mouseout", function (e) {
-		findxy('out', e)
-	}, false);
+    canvas.addEventListener("mousemove", function (e) {
+        findxy('move', e)
+    }, false);
+    canvas.addEventListener("mousedown", function (e) {
+        findxy('down', e)
+    }, false);
+    canvas.addEventListener("mouseup", function (e) {
+        findxy('up', e)
+    }, false);
+    canvas.addEventListener("mouseout", function (e) {
+        findxy('out', e)
+    }, false);
 };
 
 
@@ -47,7 +47,7 @@ function draw() {
 
 
     const steep = Math.abs(y2 - y1) > Math.abs(x2 - x1);
-    if (steep){
+    if (steep) {
         const x = x1;
         x1 = y1;
         y1 = x;
@@ -72,12 +72,12 @@ function draw() {
         de = dy / dx,
         yStep = -1,
         y = y1;
-        
+
     if (y1 < y2) {
         yStep = 1;
     }
-       
-       
+
+
     for (let x = x1; x < x2; x++) {
         ctx.beginPath();
         if (steep) {
@@ -98,76 +98,63 @@ function draw() {
 }
 
 function erase() {
-	ctx.clearRect(0, 0, w, h);
+    ctx.clearRect(0, 0, w, h);
 }
 
 function findxy(res, e) {
-	if (res == 'down') {
-		prevX = currX;
-		prevY = currY;
-		const {x, y} = canvas.getBoundingClientRect();
-		currX = e.clientX - x;
-		currY = e.clientY - y;
-		flag = true;
-	}
-	if (res == 'up' || res == "out") {
-		flag = false;
-		sendCanvasBytes(e);
-	}
-	if (res == 'move') {
-		if (flag) {
-			prevX = currX;
-			prevY = currY;
-			const {x, y} = canvas.getBoundingClientRect();
-			currX = e.clientX - x;
-			currY = e.clientY - y;
-			draw();
-		}
-	}
+    if (res == 'down') {
+        prevX = currX;
+        prevY = currY;
+        const { x, y } = canvas.getBoundingClientRect();
+        currX = e.clientX - x;
+        currY = e.clientY - y;
+        flag = true;
+    }
+    if (res == 'up' || res == "out") {
+        flag = false;
+        sendCanvasBytes(e);
+    }
+    if (res == 'move') {
+        if (flag) {
+            prevX = currX;
+            prevY = currY;
+            const { x, y } = canvas.getBoundingClientRect();
+            currX = e.clientX - x;
+            currY = e.clientY - y;
+            draw();
+        }
+    }
 }
 
 function sendCanvasBytes(event) {
     function base64EncodeUnicode(str) {
         // First we escape the string using encodeURIComponent to get the UTF-8 encoding of the characters, 
         // then we convert the percent encodings into raw bytes, and finally feed it to btoa() function.
-        utf8Bytes = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+        utf8Bytes = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
             return String.fromCharCode('0x' + p1);
         });
-  
-      return btoa(utf8Bytes);
-  }
 
-
+        return btoa(utf8Bytes);
+    }
     event.preventDefault();
-
-    /*
-      const canvasData = ctx.getImageData(0,0,w,h);
-      const canvasBuffer = canvasData.data.buffer;
-      var convertedCanvas = [];
-      canvasData.data.forEach(function(byte) {convertedCanvas.push(String.fromCharCode(byte))});
-      const base64Canvas = btoa(convertedCanvas);
-    */
-
-    const canvasData = ctx.getImageData(0,0,w,h);
+    const canvasData = ctx.getImageData(0, 0, w, h);
     const canvasBuffer = canvasData.data.buffer;
     const base64Canvas = btoa(String.fromCharCode.apply(null, canvasData.data));
 
 
-	let postData = JSON.stringify(base64Canvas);
+    let postData = JSON.stringify(base64Canvas);
 
-	$.ajax({
-		url: '@{MnistResponseR}',
-		type: 'POST',
-		contentType: "application/json",
-		data: postData,
-		success: function (data) {
-			console.log(data);
-			document.getElementById(#{toJSON mnistDataId}).innerHTML = data;
+    $.ajax({
+        url: '@{MnistResponseR}',
+        type: 'POST',
+        contentType: "application/json",
+        data: postData,
+        success: function (data) {
+            console.log(data);
+            document.getElementById(#{ toJSON mnistDataId }).innerHTML = data;
 
-		},
-		error: function (data) {
-		},
-	});
+        },
+        error: function (data) {
+        },
+    });
 }
-
-

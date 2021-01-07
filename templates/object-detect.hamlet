@@ -21,9 +21,9 @@
 
                     <div #webcam-input-div>
                         <div>
-                            <canvas #canvasId width="640" height="480" style="background-color: #000;">
+                            <canvas #canvas width="640" height="480" style="background-color: #000;">
                         <div #webcam-select>
-                            <select name="devicesId" #devicesId>
+                            <select name="devicesId" #devices>
                             <input type="button" class="btn btn-primary" value="Open Webcam" id="webcam-btn" onclick="openWebcam()">
                         <div>
                             <input type="button" class="btn btn-success" value="Capture" id="capture-btn" onclick="captureImage()" style="display:none;">
