@@ -20,8 +20,8 @@ module Application
     ) where
 
 import Control.Monad.Logger                 (liftLoc)
-import Import hiding (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
-import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar, forkIO)
+import Import hiding (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
+import Control.Concurrent (newMVar, forkIO)
 
 
 import Language.Haskell.TH.Syntax           (qLocation)
@@ -42,24 +42,15 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 -- Don't forget to add new modules to your cabal file!
 import Handler.Common
 import Handler.Home
-import Handler.Comment
 import Handler.Mnist
 import Handler.MnistResponse
 import Handler.Tutorial
-import Handler.RunCode
 import Handler.ImageClass
 import Handler.ObjectDetect
 import Handler.SuperImage
 import Handler.GreenScreen
 import Sockets.Webcam
 import Sockets.Types
-import Grenade
-import Grenade.Networks.ResNet18
-
-import System.IO.Temp 
-import System.Process
-import GHC.IO.Handle
-import System.FilePath.Posix
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
@@ -143,7 +134,7 @@ appMain = do
     -- Start the server for the webcam
     newState <- newServerState
     state <- newMVar newState
-    forkIO (startServer state)
+    _ <- forkIO (startServer state)
 
     -- Get the settings from all relevant sources
     settings <- loadYamlSettingsArgs

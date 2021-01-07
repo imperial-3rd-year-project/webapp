@@ -3,7 +3,7 @@
 module Sockets.Protocol where
 
 import qualified Network.WebSockets as WS
-import           Control.Concurrent (MVar, modifyMVar_, readMVar, forkIO)
+import           Control.Concurrent (MVar, modifyMVar_, readMVar)
 import           Control.Exception (finally)
 import qualified Data.Vector.Storable as S
 import           Data.Word8
@@ -17,7 +17,6 @@ import           Data.Maybe
 
 import           Data.Vector.Storable.ByteString
 import qualified Data.ByteString as BS
-import           Grenade
 import           Sockets.Resnet
 import           Sockets.Utils
 import           Sockets.Types
@@ -100,7 +99,7 @@ processCapture mstate v bs = do
       stopRepeat = modifyMVar_ mstate $ \s -> return s { offset = Nothing, imgProc = Nothing }
   case proc' of
     Resnet      -> captureWithResnet offset' v conn' resnet' >> WS.sendBinaryData conn' bs >> stopRepeat
-    Yolo        -> captureWithYolo   offset' v conn' yolo'   >> WS.sendBinaryData conn' bs >> stopRepeat
+    Yolo        -> captureWithYolo   offset' v conn' yolo' mstate >> WS.sendBinaryData conn' bs >> stopRepeat
     SuperRes    -> undefined
     GreenScreen -> replaceBackground mstate v bs                                           >> stopRepeat
 
@@ -119,21 +118,11 @@ sendByteString mstate v = do
 setWebsiteConn :: WS.Connection -> ServerState -> ServerState
 setWebsiteConn site s = s { conn = Just (WebsiteConn site) }
 
-closeWebcam :: ServerState -> IO ServerState
-closeWebcam s = do
-  let stream = webcam s
-  when (isJust stream) $ let Just stream' = stream in stopCapture stream' >>= closeDevice >> pure ()
-  return s { webcam = Nothing, offset = Nothing, imgProc = Nothing }
-
-closeWebcamAndDisconnect :: ServerState -> IO ServerState
-closeWebcamAndDisconnect st  = do
-  closeWebcam st >>= \s -> return s { conn = Nothing }
-
 fromHandleProducer :: IO.Handle -> P.Producer T.Text IO ()
-fromHandleProducer handle = go
+fromHandleProducer h = go
   where
     go = do
-      txt <- P.liftIO (TIO.hGetChunk handle)
+      txt <- P.liftIO (TIO.hGetChunk h)
       if T.null txt
         then return ()
         else do
@@ -145,9 +134,9 @@ sendToConnConsumer :: WS.Connection -> T.Text -> P.Consumer T.Text IO ()
 sendToConnConsumer conn text = P.liftIO (WS.sendTextData conn text)
 
 sendOutput :: IO.Handle -> WS.Connection -> IO ()
-sendOutput handle conn = flip finally (IO.hClose handle) $ do
+sendOutput h conn = flip finally (IO.hClose h) $ do
   P.runEffect $ do
-    fromHandleProducer handle P.>-> P.for P.cat (sendToConnConsumer conn)
+    fromHandleProducer h P.>-> P.for P.cat (sendToConnConsumer conn)
 
 compileCode :: WS.Connection -> MVar ServerState -> IO ()
 compileCode conn mstate = do

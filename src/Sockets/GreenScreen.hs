@@ -20,6 +20,7 @@ import           Graphics.Display.ConversionUtils (resize)
 import           Grenade.Utils.PascalVoc
 import qualified Network.WebSockets               as WS
 import           Sockets.Types
+import           Sockets.Utils
 import           Sockets.Yolo
 import qualified Data.Text                        as T
 
@@ -33,13 +34,6 @@ updateNewBackground :: WS.Connection -> MVar ServerState -> IO ()
 updateNewBackground conn state = do
   WS.Binary bs <- WS.receiveDataMessage conn
   modifyMVar_ state $ \s -> return s { newBg = createImageFromBS' $ BSL.toStrict bs }
-
--- temporary
-closeWebcam' :: ServerState -> IO ServerState
-closeWebcam' s = do
-  let stream = webcam s
-  when (isJust stream) $ let Just stream' = stream in stopCapture stream' >> pure ()
-  return s { webcam = Nothing, offset = Nothing, imgProc = Nothing }
 
 replaceBackground :: MVar ServerState -> S.Vector Word8 -> BS.ByteString -> IO ()
 replaceBackground mstate imgVec imgBs = do
@@ -58,13 +52,13 @@ replaceBackground mstate imgVec imgBs = do
           centered   = resize (112, 32) Device.v4l2resolution (416, 416) imgVec
           input      = preprocessYolo' centered
           yolo'      = yolo state
-      modifyMVar_ mstate closeWebcam' -- close the webcam
+      modifyMVar_ mstate closeWebcam -- close the webcam
       output <- runYolo input yolo'
       let filtered = filter (\(_, _, _, _, _, item) -> item == "person") output
       if null filtered 
-        then WS.sendBinaryData conn' imgBs >> print "No people detected."
+        then WS.sendBinaryData conn' imgBs >> putStrLn "No people detected."
         else do
-          let (l, r, t, b, p, n) = getPrincipalBox filtered
+          let (l, r, t, b, _, n) = getPrincipalBox filtered
               -- The box that Yolo gives seems to be smaller than the person,
               -- so as an approximation, we vertically extend the box by 20% in
               -- both directions. This means that in particular, features such as
@@ -129,13 +123,12 @@ fromBinImage :: Image VS X Bit -> BS.ByteString
 fromBinImage img = fst $ BS.unfoldrN (640 * 480 * 3) maker 0
   where
     maker :: Int -> Maybe (Word8, Int)
-    maker i = Just (fromIntegral value, i + 1)
+    maker i = Just (value, i + 1)
       where
-        (pos, channel)   = divMod i 3
+        (pos, _)         = divMod i 3
         (x, y)           = divMod pos 640
         PixelX (Bit val) = index img (y, x)
-        val'             = fromIntegral val :: Int
-        value            = val' * 255
+        value            = val * 255
 
 fromImage :: Image VS RGBA Double -> BS.ByteString
 fromImage img = fst $ BS.unfoldrN (640 * 480 * 3) maker 0

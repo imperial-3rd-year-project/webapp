@@ -5,29 +5,15 @@
 
 module Sockets.SuperRes where
 
-import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Base64 as B
-import qualified Data.Vector.Storable as S
-import           Data.Word8
 import           Grenade
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Numeric.LinearAlgebra as LA
 import qualified Numeric.LinearAlgebra.Static as H
-import qualified Data.Array as A
 import qualified Network.WebSockets as WS
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import           Sockets.Utils
-import           Sockets.Types
-import           Control.Concurrent (MVar, modifyMVar_, forkIO, threadDelay)
-import           Grenade.Networks.SuperResolution
-import           Control.Monad (forM_)
 
 import           Graphics.Image hiding (map)
-import           Graphics.Image.ColorSpace
-import           Graphics.Image.IO.Formats
-
 import Debug.Trace
 
 processWithSuperRes :: WS.Connection -> SuperResolution -> IO ()

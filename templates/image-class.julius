@@ -1,12 +1,3 @@
-let socketOpened = false;
-let socket, canvas;
-let fetchingDevices = false,
-    fetchingResnet  = false,
-    isLabel         = true,
-    resnetCounter   = 0,
-    webcamPaused    = false;
-let devices = [],
-    recognisedObject = {};
 let dataURL;
 
 const w = 640;
@@ -16,106 +7,59 @@ const p = w * h;
 // Square on webcam
 let sqStrokeWidth = 4,
     sqWidth = 224,
-    webSquare = {x: (w - (sqWidth + sqStrokeWidth)) / 2, y: (h - (sqWidth + sqStrokeWidth)) / 2},
+    webSquare = { x: (w - (sqWidth + sqStrokeWidth)) / 2, y: (h - (sqWidth + sqStrokeWidth)) / 2 },
     sqMouse = {},
     isMoving = false;
 
-window.onload = function() {
+window.onload = function () {
+    let webcamCanvas = document.getElementById("canvas");
+    let webcamCtx = webcamCanvas.getContext("2d");
     // Setup webcam canvas
-	canvas = document.getElementById(#{toJSON canvasId});
-    let ctx = canvas.getContext('2d');
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    canvas.addEventListener('mousedown', function(e){
+    webcamCtx.fillRect(0, 0, webcamCanvas.width, webcamCanvas.height);
+    webcamCanvas.addEventListener('mousedown', function (e) {
         sqMouse.x = e.pageX;
         sqMouse.y = e.pageY;
         isMoving = true;
     });
 
-    canvas.addEventListener('mousemove', function(e){
+    webcamCanvas.addEventListener('mousemove', function (e) {
         if (isMoving) {
-            let move = {x: e.pageX - sqMouse.x, y: e.pageY - sqMouse.y};
+            let move = { x: e.pageX - sqMouse.x, y: e.pageY - sqMouse.y };
             // Move the rectangle on screen
-            webSquare = {x: webSquare.x + move.x, y: webSquare.y + move.y};
+            webSquare = { x: webSquare.x + move.x, y: webSquare.y + move.y };
             sqMouse.x = e.pageX;
             sqMouse.y = e.pageY;
         }
     });
-    
-    canvas.addEventListener('mouseup', function(e){
+
+    webcamCanvas.addEventListener('mouseup', function (e) {
         isMoving = false;
     });
 
-	// Create WebSocket connection.
-	socket = new WebSocket('ws://127.0.0.1:9160');
-    socket.binaryType = 'arraybuffer';
+    // Setup sockets
+    let initialState = {
+        webcamCanvas: webcamCanvas,
+        webcamCtx: webcamCtx,
+        fetchingResnet: false,
+        isLabel: true,
+        resnetCounter: 0,
+        webcamPaused: false,
+        recognisedObject: {}
+    };
+    let state = buildState(initialState).withWebcam().build();
 
-	// Connection opened
-	socket.addEventListener('open', function (event) {
-		socket.send('HELLO');
-	});
-
-	// Listen for messages
-	socket.addEventListener('message', function (event) {
-        if (event.data === "BEGIN DEVLIST") {
-            fetchingDevices = true;
-        } else if (event.data === "END DEVLIST") {
-            fetchingDevices = false;
-            // Set the options
-            let devicesSelect = document.getElementById("#js-devicesId");
-            devices.reverse();
-            for (let device of devices) {
-                let option = document.createElement("option");
-                option.text = device[0] + ": " + device[1];
-                console.log(option.text);
-                devicesSelect.add(option);
-            }
-        } else if (fetchingDevices) {
-            // Parse device type
-            const devicePath = event.data.substr(0, event.data.indexOf('$'));
-            const deviceName = event.data.substr(event.data.indexOf('$') + 1);
-            const details = [devicePath, deviceName];
-            devices.push(details);
-        } else if (event.data.toString().startsWith("ERR")) {
-            console.log(event.data);
-        } else if (event.data === "BEGIN RESNET") {
-            fetchingResnet = true;
-            resnetCounter = 0;
-            isLabel = true;
-        } else if (event.data === "END RESNET") {
-            fetchingResnet = false;
-            document.getElementById("object-label").innerHTML = generateObjectSentence(recognisedObject.label);
-        } else if (fetchingResnet) {
-            recognisedObject.label = event.data;
-        } else if (event.data === "RESUME FEED") {
-            webcamPaused = false;
-        } else {
-            let arr = new Uint8Array(event.data);
-            let n = p * 4;
-            let s = 0;
-            let d = 0;
-            dest = ctx.getImageData(0, 0, w, h);
-            while (d < n) {
-                dest.data[d++] = arr[s++];
-                dest.data[d++] = arr[s++];
-                dest.data[d++] = arr[s++];
-                d++;
-            }
-            ctx = canvas.getContext('2d');
-            ctx.putImageData(dest, 0, 0);
-
-            ctx.beginPath();
-            ctx.rect(webSquare.x, webSquare.y, sqWidth, sqWidth);
-            ctx.lineWidth = sqStrokeWidth;
-            ctx.setLineDash([15, 5]);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.stroke();
-            
-            if (webcamPaused) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            }
-        }
-	});
+    initialiseSocket(state);
+    // Order is important!
+    addSocketHandler(SOCKET_BEGIN_DEVICES, onBeginDevices);
+    addSocketHandler(SOCKET_END_DEVICES, onEndDevices);
+    addSocketHandler(SOCKET_RECEIVE_DEVICE, onReceiveDevice);
+    
+    addSocketHandler(SOCKET_BEGIN_RESNET, onResBegin);
+    addSocketHandler(SOCKET_END_RESNET, onResEnd);
+    addSocketHandler(SOCKET_RECEIVE_RESNET, onResReceive);
+    
+    addSocketHandler(SOCKET_RECEIVE_WEBCAM_FRAME, onWebcamFrame);
+    setSocketHandler();
 
     // Switch input modes
     const inputCheckbox = document.getElementById("image-input-checkbox");
@@ -133,16 +77,16 @@ window.onload = function() {
         document.getElementById("object-label").innerHTML = '';
     });
 
-    document.getElementById("upload-image-input").onchange = function(event) {
+    document.getElementById("upload-image-input").onchange = function (event) {
         let input = event.target;
         let reader = new FileReader();
         document.getElementById("object-label").innerHTML = "I'm trying to work out what I'm looking at, just a moment...";
-        reader.onload = function(){
+        reader.onload = function () {
             dataURL = reader.result;
             let img = new Image();
             let output = document.getElementById('uploaded-image');
             let ctx = output.getContext('2d');
-            img.onload = function() {
+            img.onload = function () {
                 if (img.width > img.height) {
                     let w = img.width * (224 / img.height);
                     ctx.drawImage(img, 0, 0, w, 224);
@@ -151,9 +95,9 @@ window.onload = function() {
                     ctx.drawImage(img, 0, 0, 224, h);
                 }
                 console.log("Sending buffer...");
-                socket.send('IMAGE RESNET');
+                sendMsg(IMAGE.RESNET);
                 let buff = ctx.getImageData(0, 0, 224, 224).data.buffer;
-                socket.send(buff);
+                sendData(buff);
 
             };
             img.src = dataURL;
@@ -163,18 +107,18 @@ window.onload = function() {
 };
 
 function openWebcam() {
-    let deviceSelect = document.getElementById("#js-devicesId");
+    let deviceSelect = document.getElementById("devices");
     let device = deviceSelect.value.split(":")[0];
-
-    socket.send('OPEN ' + device);
+    sendMsg(WEBCAM.OPEN, device);
     document.getElementById("webcam-btn").value = "Close Webcam"
     document.getElementById("webcam-btn").onclick = closeWebcam;
 }
 
 function closeWebcam() {
-    socket.send('CLOSE');
-    let ctx = canvas.getContext('2d');
+    sendMsg(WEBCAM.CLOSE);
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    let webcamCanvas = document.getElementById("canvas");
+    let webcamCtx = webcamCanvas.getContext("2d");
     document.getElementById("webcam-btn").value = "Open Webcam"
     document.getElementById("webcam-btn").onclick = openWebcam;
 }
@@ -187,10 +131,42 @@ function captureImage() {
     socket.send(webSquare.y.toString());
 }
 
+function onResBegin(event, state) {
+    state.fetchingResnet = true;
+    state.resnetCounter = 0;
+    state.isLabel = true;
+}
+
+function onResEnd(event, state) {
+    state.fetchingResnet = false;
+    document.getElementById("object-label").innerHTML = generateObjectSentence(state.recognisedObject.label);
+    state.webcamPaused = false;
+}
+
+function onResReceive(event, state) {
+    state.recognisedObject.label = event.data;
+}
+
+function onWebcamFrame(event, state) {
+    drawWebcamImage(event, state);
+
+    state.webcamCtx.beginPath();
+    state.webcamCtx.rect(webSquare.x, webSquare.y, sqWidth, sqWidth);
+    state.webcamCtx.lineWidth = sqStrokeWidth;
+    state.webcamCtx.setLineDash([15, 5]);
+    state.webcamCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    state.webcamCtx.stroke();
+
+    if (state.webcamPaused) {
+        state.webcamCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        state.webcamCtx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    }
+}
+
 const sentences = [
-   {prefix: "Looks like a good old", suffix: "to me", article: false},
-   {prefix: "I'm quite sure that's a lovely", suffix: "", article: false},
-   {prefix: "How exotic! I have never seen a", suffix: "like that before", article: true}
+    { prefix: "Looks like a good old", suffix: "to me", article: false },
+    { prefix: "I'm quite sure that's a lovely", suffix: "", article: false },
+    { prefix: "How exotic! I have never seen a", suffix: "like that before", article: true }
 ];
 
 function generateObjectSentence(label) {

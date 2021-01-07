@@ -6,7 +6,6 @@
 module Handler.Home where
 
 import Import
-import Text.Julius (RawJS (..))
 
 -- Define our data that will be used for creating the form.
 data FileForm = FileForm
@@ -17,11 +16,5 @@ data FileForm = FileForm
 getHomeR :: Handler Html
 getHomeR = do
     defaultLayout $ do
-        setTitle "Functional Neural Network!"
-        $(widgetFile "homepage")
-
-postHomeR :: Handler Html
-postHomeR = do
-    defaultLayout $ do
-        setTitle "Functional Neural Network!"
+        setTitle "Grenade - Functional Neural Networks"
         $(widgetFile "homepage")

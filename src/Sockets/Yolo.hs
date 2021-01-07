@@ -12,6 +12,7 @@ import qualified Numeric.LinearAlgebra.Static as H
 import qualified Data.Array as A
 import qualified Network.WebSockets as WS
 import qualified Data.Text as T
+import           Sockets.Utils
 
 import           Sockets.Types
 import           Control.Concurrent (MVar, modifyMVar_, forkIO)
@@ -31,39 +32,42 @@ captureWithYolo :: (Double, Double)
                   -> S.Vector Word8
                   -> WS.Connection
                   -> TinyYoloV2
+                  -> MVar ServerState
                   -> IO ()
-captureWithYolo (x, y) v conn yolo = do
-  let v'          = resize (floor x, floor y) Device.v4l2resolution (416, 416) v
+captureWithYolo (x, y) v conn net mstate = do
+  let v' = resize (floor x, floor y) Device.v4l2resolution (416, 416) v
+  modifyMVar_ mstate closeWebcam
   _ <- forkIO $ do
     let input = preprocessYolo' v'
-    boxes <- runYolo input yolo
+    boxes <- runYolo input net
     print boxes
+    let offsetW = (640 - 416) `div` 2
+        offsetH = (480 - 416) `div` 2
     WS.sendTextData conn ("BEGIN YOLO" :: T.Text)
     forM_ boxes $ \(l, r, t, b, _, label) -> do
       WS.sendTextData conn (T.pack label)
-      WS.sendTextData conn (T.pack $ show $ 416 - l) -- We flip the image on the x axis when drawing.
-      WS.sendTextData conn (T.pack $ show $ 416 - r)
-      WS.sendTextData conn (T.pack $ show t)
-      WS.sendTextData conn (T.pack $ show b)
+      WS.sendTextData conn (T.pack $ show $ (416 - l) + offsetW) -- We flip the image on the x axis when drawing.
+      WS.sendTextData conn (T.pack $ show $ (416 - r) + offsetW)
+      WS.sendTextData conn (T.pack $ show $ t + offsetH)
+      WS.sendTextData conn (T.pack $ show $ b + offsetH)
     WS.sendTextData conn ("END YOLO" :: T.Text)
-    WS.sendTextData conn ("RESUME FEED" :: T.Text)
   pure ()
 
 processWithYolo :: WS.Connection -> TinyYoloV2 -> IO ()
-processWithYolo site yolo = do
-  imageData <- WS.receiveDataMessage site :: IO WS.DataMessage
+processWithYolo conn net = do
+  imageData <- WS.receiveDataMessage conn :: IO WS.DataMessage
   let (WS.Binary bs) = imageData
       decoded        = decodeForYolo bs 1
   input <- preprocessYolo (A.listArray (0, length decoded - 1) decoded)
-  boxes <- runYolo input yolo
-  WS.sendTextData site ("BEGIN YOLO" :: T.Text)
+  boxes <- runYolo input net
+  WS.sendTextData conn ("BEGIN YOLO" :: T.Text)
   forM_ boxes $ \(l, r, t, b, _, label) -> do
-      WS.sendTextData site (T.pack label)
-      WS.sendTextData site (T.pack $ show l)
-      WS.sendTextData site (T.pack $ show r)
-      WS.sendTextData site (T.pack $ show t)
-      WS.sendTextData site (T.pack $ show b)
-  WS.sendTextData site ("END YOLO" :: T.Text)
+      WS.sendTextData conn (T.pack label)
+      WS.sendTextData conn (T.pack $ show l)
+      WS.sendTextData conn (T.pack $ show r)
+      WS.sendTextData conn (T.pack $ show t)
+      WS.sendTextData conn (T.pack $ show b)
+  WS.sendTextData conn ("END YOLO" :: T.Text)
 
 decodeForYolo :: BSL.ByteString -> Int -> [Double]
 decodeForYolo bs i
@@ -100,7 +104,7 @@ preprocessYolo' v = S3D mat
         e   = fromIntegral (v S.! x) / 255
 
 runYolo :: S ('D3 416 416 3) -> TinyYoloV2 -> IO [DetectedObject]
-runYolo input yolo = do
-  let y = runNet yolo input
+runYolo input net = do
+  let y = runNet net input
       boxes = processOutput y 0.3 0.5
   return boxes

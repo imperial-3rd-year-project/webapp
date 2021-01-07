@@ -1,4 +1,4 @@
-#canvasId {
+#canvas {
   margin-top: 24px;
   box-shadow: 0 10px 5px rgba(0, 0, 0, 0.2);
   border-radius: 12px;
@@ -31,55 +31,6 @@ select {
   border-radius: 6px;
 }
 
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 30px;
-  margin-left: 18px;
-  margin-right: 18px;
-  margin-top: 12px;
+#capture-btn {
+  margin-bottom: 4px;
 }
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 30px;
-  background-color: #F23A79;
-  transition: .4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 22px;
-  width: 22px;
-  left: 4px;
-  bottom: 4px;
-  border-radius: 50%;
-  background-color: white;
-  transition: .4s;
-}
-
-input:checked + .slider {
-  background-color: #2259F2;
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px #2259F2;
-}
-
-input:checked + .slider:before {
-  transform: translateX(30px);
-}
-

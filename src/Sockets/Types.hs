@@ -3,11 +3,7 @@ module Sockets.Types where
 import qualified Graphics.Display.Class as Disp
 import qualified Graphics.Capture.V4L2.Device as Device
 import qualified Network.WebSockets as WS
-import qualified Data.ByteString as BS
-import qualified Data.Vector.Storable as S
-import           Data.Word8
 import           Graphics.Image
-import           Graphics.Image.ColorSpace
 import Grenade
 
 newtype WebsiteConn = WebsiteConn WS.Connection
@@ -26,18 +22,18 @@ data ServerState
 
 newServerState :: IO ServerState
 newServerState = do
-  Right res   <- getPathForNetwork ResNet18 >>= loadResNet
-  Right yolo  <- getPathForNetwork TinyYoloV2 >>= loadTinyYoloV2
-  Right super <- getPathForNetwork SuperResolution >>= loadSuperResolution
+  Right resnet   <- getPathForNetwork ResNet18 >>= loadResNet
+  Right yolonet  <- getPathForNetwork TinyYoloV2 >>= loadTinyYoloV2
+  Right supernet <- getPathForNetwork SuperResolution >>= loadSuperResolution
   
   return ServerState 
     { conn     = Nothing
     , webcam   = Nothing
     , offset   = Nothing
     , imgProc  = Nothing
-    , resnet   = res
-    , yolo     = yolo
-    , superres = super
+    , resnet   = resnet
+    , yolo     = yolonet
+    , superres = supernet
     , refBg    = Nothing
     , newBg    = makeImage (640,480) $ const $ PixelRGBA 0.0 1.0 0.0 0.0
     }
