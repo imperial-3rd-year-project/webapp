@@ -49,7 +49,7 @@ import Handler.ImageClass
 import Handler.ObjectDetect
 import Handler.SuperImage
 import Handler.GreenScreen
-import Sockets.Webcam
+import Sockets.Server
 import Sockets.Types
 
 -- This line actually creates our YesodDispatch instance. It is the second half

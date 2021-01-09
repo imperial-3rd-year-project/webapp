@@ -1,120 +1,97 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GADTs     #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 
 module Sockets.Resnet where
 
-import qualified Data.Vector.Storable as S
-import           Data.Word8
-import           Grenade
-import qualified Data.ByteString.Lazy as BSL
-import qualified Numeric.LinearAlgebra as LA
-import qualified Numeric.LinearAlgebra.Static as H
-import qualified Data.Array as A
-import           Data.Function (on)
-import           Data.List (sortBy)
-import qualified Network.WebSockets as WS
-import qualified Data.Text as T
-import           Sockets.Utils
-import           Sockets.Types
-import           Control.Concurrent (MVar, modifyMVar_, forkIO)
-import           Control.Monad (forM_)
-import           Grenade.Utils.ImageNet
-
-import qualified Graphics.Capture.V4L2.Device as Device
+import           Control.Concurrent               (MVar, forkIO, readMVar)
+import qualified Data.ByteString                  as BS
+import qualified Data.ByteString.Lazy             as BSL
+import           Data.Function                    (on)
+import           Data.List                        (maximumBy)
+import           Data.Proxy                       (Proxy)
+import qualified Data.Text                        as T
+import qualified Data.Vector.Storable             as S
+import           Data.Word8                       (Word8)
+import qualified Graphics.Capture.V4L2.Device     as Device
 import           Graphics.Display.ConversionUtils (resize)
+import           Grenade
+import           Grenade.Utils.ImageNet           (getLabel)
+import qualified Network.WebSockets               as WS
+import qualified Numeric.LinearAlgebra            as LA
+import qualified Numeric.LinearAlgebra.Static     as H
+import           Sockets.Types
 
-enableCaptureWithResnet :: WS.Connection -> MVar ServerState -> IO ()
-enableCaptureWithResnet site state = do
-  xMsg <- WS.receiveData site :: IO T.Text
-  yMsg <- WS.receiveData site :: IO T.Text
-  let offset' = (read $ T.unpack xMsg, read $ T.unpack yMsg) :: (Double, Double)
-  modifyMVar_ state $ \s -> return s { offset = Just offset', imgProc = Just Resnet }
-  pure ()
+data ResNetProcessor = ResNetProcessor
 
-captureWithResnet :: (Double, Double)
-                  -> S.Vector Word8
-                  -> WS.Connection
-                  -> ResNet18
-                  -> IO ()
-captureWithResnet (x, y) v conn res = do
-  let v'          = resize (floor x, floor y) Device.v4l2resolution (224, 224) v
+instance HandlesImage ResNetProcessor where
+  handleImage _ stateref socket = do
+    WS.Binary imageBS <- WS.receiveDataMessage socket
+    state             <- readMVar stateref
+    sendResNetOutput socket $ postProcessResNet
+                            $ runNet (resnet state)
+                            $ preprocessImageResNet (BSL.toStrict imageBS)
+  matchImageProcessor = matchResNetProcessor
+  getImageMsgFormat   = getResNetMsgFormat
+
+instance HandlesCapture ResNetProcessor where
+  getCallback _ _ socket = do
+    offset <- WS.receiveData socket
+    return (captureWithResNet $ read $ T.unpack offset)
+  matchCaptureProcessor = matchResNetProcessor
+  getCaptureMsgFormat   = getResNetMsgFormat
+
+matchResNetProcessor :: Proxy ResNetProcessor -> T.Text -> Maybe ResNetProcessor
+matchResNetProcessor _ proc
+  | proc == "RESNET" = Just ResNetProcessor
+  | otherwise      = Nothing
+
+getResNetMsgFormat :: Proxy ResNetProcessor -> String
+getResNetMsgFormat = const "RESNET"
+
+preprocessWebcamResNet :: S.Vector Word8 -> S ('D3 224 224 3)
+preprocessWebcamResNet v = S3D (H.build gen)
+  where
+    gen :: Double -> Double -> Double
+    gen i j
+      | channel == 0 = (e - 0.485) / 0.229
+      | channel == 1 = (e - 0.456) / 0.224
+      | channel == 2 = (e - 0.406) / 0.225
+      | otherwise    = error "preprocessWebcamResNet: Channel not between 0 and 2."
+      where
+        channel = floor (i / 224)
+        row     = floor i - (channel * 224)
+        x       = ((row * 224) + floor j) * 3 + channel
+        e       = fromIntegral (v S.! x) / 255
+
+preprocessImageResNet :: BS.ByteString -> S ('D3 224 224 3)
+preprocessImageResNet bs = S3D (H.build gen)
+  where
+    gen :: Double -> Double -> Double
+    gen i j
+      | channel == 0 = (e - 0.485) / 0.229
+      | channel == 1 = (e - 0.456) / 0.224
+      | channel == 2 = (e - 0.406) / 0.225
+      | otherwise    = error "preprocessImageResNet: Channel not between 0 and 2."
+      where
+        channel = floor (i / 224)
+        row     = floor i - (channel * 224)
+        x       = ((row * 224) + floor j) * 4 + channel
+        e       = fromIntegral (BS.index bs x) / 255
+
+captureWithResNet :: (Double, Double) -> S.Vector Word8 -> MVar ServerState -> WS.Connection -> IO ()
+captureWithResNet (x, y) imageV stateref socket = do
   _ <- forkIO $ do
-    let input = preprocessResnet' v'
-    out <- runResNet res input
-    case out of
-      Left err    -> WS.sendTextData conn (T.pack ("ERR " ++ err))
-      Right probs -> do
-        WS.sendTextData conn ("BEGIN RESNET" :: T.Text)
-        forM_ [head probs] $ \(c, _) -> do
-          WS.sendTextData conn (T.pack (getLabel c))
-        WS.sendTextData conn ("END RESNET" :: T.Text)
-        WS.sendTextData conn ("RESUME FEED" :: T.Text)
-  pure ()
+    state <- readMVar stateref
+    sendResNetOutput socket $ postProcessResNet
+                            $ runNet (resnet state)
+                            $ preprocessWebcamResNet
+                            $ resize (416 - floor x, floor y) Device.v4l2resolution (224, 224) imageV
+  return ()
 
-processWithResnet :: WS.Connection -> ResNet18 -> IO ()
-processWithResnet site res = do
-  imageData <- WS.receiveDataMessage site :: IO WS.DataMessage
-  let (WS.Binary bs) = imageData
-      decoded        = decodeForResnet bs 1
-  input <- preprocessResnet (A.listArray (0, length decoded - 1) decoded)
-  out <- runResNet res input
-  case out of
-    Left err    -> sendErr err site
-    Right probs -> do
-      WS.sendTextData site ("BEGIN RESNET" :: T.Text)
-      forM_ [head probs] $ \(c, _) -> do
-        WS.sendTextData site (T.pack (getLabel c))
-      WS.sendTextData site ("END RESNET" :: T.Text)
+postProcessResNet :: S ('D1 1000) -> String
+postProcessResNet (S1D v) = getLabel $ fst $ maximumBy (compare `on` snd) $ zip [0..] $ LA.toList $ H.extract v
 
-decodeForResnet :: BSL.ByteString -> Int -> [Double]
-decodeForResnet bs i
-  | BSL.null bs = []
-  | i `mod` 4 == 0  = decodeForResnet (BSL.tail bs) 1
-  | otherwise   = f : decodeForResnet (BSL.tail bs) (i + 1)
-  where
-    e = fromIntegral $ BSL.head bs :: Int
-    e' = fromIntegral e / 255 :: Double
-    f | i == 1 = (e' - 0.485) / 0.229
-      | i == 2 = (e' - 0.456) / 0.224
-      | i == 3 = (e' - 0.406) / 0.225
-
-preprocessResnet :: A.Array Int Double -> IO (S ('D3 224 224 3))
-preprocessResnet pixels = do
-  let mat = H.build buildMat
-  pure $ S3D mat
-  where
-    buildMat :: Double -> Double -> Double
-    buildMat i j = pixels A.! x
-      where
-        chn = floor $ i / 224 :: Int
-        row = i - fromIntegral (chn * 224)
-        x   = floor $ ((row * 224) + j) * 3 + fromIntegral chn
-
-preprocessResnet' :: S.Vector Word8 -> S ('D3 224 224 3)
-preprocessResnet' v = S3D mat
-  where
-    mat = H.build buildMat
-
-    buildMat :: Double -> Double -> Double
-    buildMat i j = f
-      where
-        chn = floor $ i / 224 :: Int
-        row = i - fromIntegral (chn * 224)
-        x   = floor $ ((row * 224) + j) * 3 + fromIntegral chn
-        e   = fromIntegral (v S.! x) / 255
-
-        f | chn == 0 = (e - 0.485) / 0.229
-          | chn == 1 = (e - 0.456) / 0.224
-          | chn == 2 = (e - 0.406) / 0.225
-
-runResNet :: ResNet18 -> S ('D3 224 224 3) -> IO (Either String [(Int, Double)])
-runResNet res input = do
-  -- Todo: load the network once, at the start of the application
-  let S1D y = runNet res input
-      tops  = getTop 5 $ LA.toList $ H.extract y
-  return $ Right tops
-  where
-    getTop :: Ord a => Int -> [a] -> [(Int, a)]
-    getTop n xs = take n $ sortBy (flip compare `on` snd) $ zip [0..] xs
+sendResNetOutput :: WS.Connection -> String -> IO ()
+sendResNetOutput socket label = WS.sendTextData socket ("RESNET " <> T.pack label)

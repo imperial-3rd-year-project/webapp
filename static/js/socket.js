@@ -26,16 +26,8 @@ const SOCKET_RECEIVE_YOLO = function (event, state) {
     return state.fetchingYolo;
 };
 
-const SOCKET_BEGIN_RESNET = function (event, state) {
-    return event.data.toString() === "BEGIN RESNET";
-};
-
-const SOCKET_END_RESNET = function (event, state) {
-    return event.data.toString() === "END RESNET";
-};
-
 const SOCKET_RECEIVE_RESNET = function (event, state) {
-    return state.fetchingResnet;
+    return event.data.toString().startsWith("RESNET ");
 };
 
 const SOCKET_RECEIVE_WEBCAM_FRAME = function (event, state) {

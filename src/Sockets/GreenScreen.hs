@@ -8,107 +8,66 @@ module Sockets.GreenScreen where
 
 import           Control.Applicative              (liftA2)
 import           Control.Concurrent               (MVar, modifyMVar_, readMVar)
-import           Control.Monad                    (when)
-import qualified Data.Vector.Storable             as S
-import           Data.Word8
-import           Data.Maybe                       (isNothing, isJust)
 import qualified Data.ByteString                  as BS
 import qualified Data.ByteString.Lazy             as BSL
-import           Graphics.Capture.Class
+import           Data.List                        (find)
+import           Data.Proxy                       (Proxy)
+import qualified Data.Text                        as T
+import qualified Data.Vector.Storable             as S
+import           Data.Vector.Storable.ByteString  (vectorToByteString)
+import           Data.Word8                       (Word8)
 import qualified Graphics.Capture.V4L2.Device     as Device
 import           Graphics.Display.ConversionUtils (resize)
-import           Grenade.Utils.PascalVoc
+import           Graphics.Image                   (RGBA, Pixel(..), VS(..), X, Bit(..))
+import qualified Graphics.Image                   as I
+import           Graphics.Image.Interface
+import           Grenade
+import           Grenade.Utils.PascalVoc          (DetectedObject)
 import qualified Network.WebSockets               as WS
 import           Sockets.Types
-import           Sockets.Utils
+import           Sockets.Webcam                   (closeWebcam)
 import           Sockets.Yolo
-import qualified Data.Text                        as T
 
-import           Graphics.Image                   as I hiding (resize, or)
-import           Graphics.Image.Interface              hiding (map)
+data GreenScreenProcessor = GreenScreenProcessor
 
-enableGreenScreen :: WS.Connection -> MVar ServerState -> IO ()
-enableGreenScreen _ state = modifyMVar_ state $ \s -> return s { imgProc = Just GreenScreen }
+instance HandlesImage GreenScreenProcessor where
+  handleImage _ stateref socket = do
+    WS.Binary imageBS <- WS.receiveDataMessage socket
+    modifyMVar_ stateref $ \s -> return s { newBg = createImageFromImage (BSL.toStrict imageBS) }
+  matchImageProcessor = matchGSProcessor
+  getImageMsgFormat   = getGSMsgFormat
 
-updateNewBackground :: WS.Connection -> MVar ServerState -> IO ()
-updateNewBackground conn state = do
-  WS.Binary bs <- WS.receiveDataMessage conn
-  modifyMVar_ state $ \s -> return s { newBg = createImageFromBS' $ BSL.toStrict bs }
+instance HandlesCapture GreenScreenProcessor where
+  getCallback _ _ _     = return captureWithGS
+  matchCaptureProcessor = matchGSProcessor
+  getCaptureMsgFormat   = getGSMsgFormat
 
-replaceBackground :: MVar ServerState -> S.Vector Word8 -> BS.ByteString -> IO ()
-replaceBackground mstate imgVec imgBs = do
-  state <- readMVar mstate
-  let Just (WebsiteConn conn') = conn state
-      mbg   = refBg state
-      newbg = newBg state
-  if isNothing mbg
-    then do
-      -- Initially we will capture the background
-      modifyMVar_ mstate $ \s -> return s { refBg = Just (createImageFromBS imgBs), imgProc = Nothing }
-      WS.sendBinaryData conn' imgBs
-    else do
-      -- The second time the capture is invoked, we can perform analysis on it
-      let Just oldbg = mbg
-          centered   = resize (112, 32) Device.v4l2resolution (416, 416) imgVec
-          input      = preprocessYolo' centered
-          yolo'      = yolo state
-      modifyMVar_ mstate closeWebcam -- close the webcam
-      output <- runYolo input yolo'
-      let filtered = filter (\(_, _, _, _, _, item) -> item == "person") output
-      if null filtered 
-        then WS.sendBinaryData conn' imgBs >> putStrLn "No people detected."
-        else do
-          let (l, r, t, b, _, n) = getPrincipalBox filtered
-              -- The box that Yolo gives seems to be smaller than the person,
-              -- so as an approximation, we vertically extend the box by 20% in
-              -- both directions. This means that in particular, features such as
-              -- the top of the person's head doesn't affect the mean difference.
-              (extendH, extendV) = (0, (b - t) `div` 5)
-              (l', r') = (max 0 (l + 112 - extendH), min (r + 112 + extendH) 640)
-              (t', b') = (max 0 (t + 32  - extendV), min (b + 32  + extendV) 480)
+matchGSProcessor :: Proxy GreenScreenProcessor -> T.Text -> Maybe GreenScreenProcessor
+matchGSProcessor _ proc
+  | proc == "GS" = Just GreenScreenProcessor
+  | otherwise    = Nothing
 
-              -- Calculate differences in pixels and get stats on those.
-              !img      = createImageFromBS imgBs
-              !diffs    = applyFilter (gaussianBlur 15) -- Blur helps remove noise.
-                        $ I.zipWith (liftPx2 (\x y -> abs $ x - y)) img oldbg
-              !(!diffMean, diffVariance) = getStats l' r' t' b' diffs
+getGSMsgFormat :: Proxy GreenScreenProcessor -> String
+getGSMsgFormat = const "GS"
 
-              -- Construct mask for blending foreground and background.
-              !structD  = fromLists [[0,1,0],[0,1,0],[1,1,1]] :: Image VS X Bit 
-              !faceMask = open structD                     -- Try removing noise with morphology.
-                        $ crop (l', t') (r' - l', b' - t') -- Crop to detected face.
-                        $ toImageBinaryUsing markFGPixel diffs
-              !baseMask = makeImageR VS (640, 480) (const $ PixelX $ Bit 0)
-              !mask     = superimpose (l', t') faceMask baseMask
+captureWithGS :: S.Vector Word8 -> MVar ServerState -> WS.Connection -> IO ()
+captureWithGS imageV stateref socket = do
+  let imageBS = vectorToByteString imageV
+  state <- readMVar stateref
+  maybe
+    -- Record reference background if not done so yet.
+    (do modifyMVar_ stateref $ \s -> return s { refBg = Just (createImageFromWebcam imageV) }
+        WS.sendBinaryData socket imageBS)
+    -- Perform background replacement if already have reference background.
+    (\oldbg -> do modifyMVar_ stateref closeWebcam
+                  sendGSOutput socket imageBS $ postProcessGreenScreen imageV oldbg (newBg state)
+                                              $ runNet (yolo state)
+                                              $ preprocessWebcamYolo
+                                              $ resize (112, 32) Device.v4l2resolution (416, 416) imageV)
+    (refBg state)
 
-              markFGPixel diffPixel = or $ liftA2 (>) (diffPixel - diffMean) ((1.5 *) . sqrt <$> diffVariance) --(PixelRGBA 0.2 0.2 0.2 1.0)
-              pickPixels (x, y) maskPixel ogPixel
-                | isOn maskPixel = ogPixel
-                | otherwise      = I.index newbg (x, y)
-
-          WS.sendBinaryData conn' $ fromImage $ I.izipWith pickPixels mask img
-          -- Send the bounding box data (debugging purposes)
-          WS.sendTextData conn' ("BEGIN YOLO" :: T.Text)
-          WS.sendTextData conn' (T.pack n)
-          WS.sendTextData conn' (T.pack $ show l')
-          WS.sendTextData conn' (T.pack $ show r')
-          WS.sendTextData conn' (T.pack $ show t')
-          WS.sendTextData conn' (T.pack $ show b')
-          WS.sendTextData conn' ("END YOLO" :: T.Text)
-
-createImageFromBS :: BS.ByteString -> Image VS RGBA Double
-createImageFromBS bs = makeImageR VS (640, 480) maker
-  where
-    maker :: (Int, Int) -> Pixel RGBA Double
-    maker (i, j) = PixelRGBA r g b 1.0
-      where
-        pixel = (j * 640 + i) * 3
-        r = fromIntegral (BS.index bs (pixel + 0)) / 255
-        g = fromIntegral (BS.index bs (pixel + 1)) / 255
-        b = fromIntegral (BS.index bs (pixel + 2)) / 255
-
-createImageFromBS' :: BS.ByteString -> Image VS RGBA Double
-createImageFromBS' bs = makeImageR VS (640, 480) maker
+createImageFromImage :: BS.ByteString -> Image VS RGBA Double
+createImageFromImage bs = I.makeImageR VS (640, 480) maker
   where
     maker :: (Int, Int) -> Pixel RGBA Double
     maker (i, j) = PixelRGBA r g b a
@@ -119,35 +78,81 @@ createImageFromBS' bs = makeImageR VS (640, 480) maker
         b = fromIntegral (BS.index bs (pixel + 2)) / 255
         a = fromIntegral (BS.index bs (pixel + 3)) / 255
 
-fromBinImage :: Image VS X Bit -> BS.ByteString
-fromBinImage img = fst $ BS.unfoldrN (640 * 480 * 3) maker 0
+createImageFromWebcam :: S.Vector Word8 -> Image VS RGBA Double
+createImageFromWebcam v = I.makeImageR VS (640, 480) maker
   where
-    maker :: Int -> Maybe (Word8, Int)
-    maker i = Just (value, i + 1)
+    maker :: (Int, Int) -> Pixel RGBA Double
+    maker (i, j) = PixelRGBA r g b 1.0
       where
-        (pos, _)         = divMod i 3
-        (x, y)           = divMod pos 640
-        PixelX (Bit val) = index img (y, x)
-        value            = val * 255
+        pixel = (j * 640 + i) * 3
+        r = fromIntegral (v S.! (pixel + 0)) / 255
+        g = fromIntegral (v S.! (pixel + 1)) / 255
+        b = fromIntegral (v S.! (pixel + 2)) / 255
 
-fromImage :: Image VS RGBA Double -> BS.ByteString
-fromImage img = fst $ BS.unfoldrN (640 * 480 * 3) maker 0
+postProcessGreenScreen :: S.Vector Word8 -> Image VS RGBA Double -> Image VS RGBA Double
+                       -> S ('D3 13 13 125) -> Maybe (Image VS RGBA Double)
+postProcessGreenScreen imageV oldbg newbg output
+  = fmap (replaceBackground imageV oldbg newbg)
+  $ find (\(_, _, _, _, _, item) -> item == "person")
+  $ postProcessYolo False output
+ 
+sendGSOutput :: WS.Connection -> BS.ByteString -> Maybe (Image VS RGBA Double) -> IO ()
+sendGSOutput socket imageBS Nothing = do
+  WS.sendBinaryData socket imageBS
+sendGSOutput socket _ (Just image)  = do
+  WS.sendBinaryData socket $ fst $ BS.unfoldrN (640 * 480 * 3) gen 0
   where
-    maker :: Int -> Maybe (Word8, Int)
-    maker i = Just (value, i + 1)
+    gen :: Int -> Maybe (Word8, Int)
+    gen i = Just (value, i + 1)
       where
-        (pos, channel) = divMod i 3
-        (x, y)         = divMod pos 640
-        PixelRGBA r g b _ = index img (y, x)
-        value = floor $ ([r, g, b] !! channel) * 255
+        (pos, channel)    = divMod i 3
+        (x, y)            = divMod pos 640
+        PixelRGBA r g b _ = I.index image (y, x)
+        value             = floor $ ([r, g, b] !! channel) * 255
 
--- Given a hip image, return the mean and variance of the pixels in the image outside the given box.
+
+replaceBackground :: S.Vector Word8 -> Image VS RGBA Double -> Image VS RGBA Double
+                  -> DetectedObject -> Image VS RGBA Double
+replaceBackground imageV oldbg newbg (l, r, t, b, _, _) = I.izipWith pickPixels mask img
+  where
+    -- The box that Yolo gives seems to be smaller than the person,
+    -- so as an approximation, we vertically extend the box by 20% in
+    -- both directions. This means that in particular, features such as
+    -- the top of the person's head doesn't affect the mean difference.
+    (extendH, extendV) = (0, (b - t) `div` 5)
+    (l', r') = (max 0 (l + 112 - extendH), min (r + 112 + extendH) 640)
+    (t', b') = (max 0 (t + 32  - extendV), min (b + 32  + extendV) 480)
+
+    -- Calculate differences in pixels and get stats on those.
+    !img      = createImageFromWebcam imageV
+    !diffs    = I.applyFilter (I.gaussianBlur 15) -- Blur helps remove noise.
+              $ I.zipWith (liftPx2 (\x y -> abs $ x - y)) img oldbg
+    !(!diffMean, !diffVariance) = getStats l' r' t' b' diffs
+
+    -- Construct mask for blending foreground and background.
+    !structD  = I.fromLists [[0,1,0],[0,1,0],[1,1,1]]
+    !faceMask = I.open structD                     -- Try removing noise with morphology.
+              $ I.crop (l', t') (r' - l', b' - t') -- Crop to detected face.
+              $ I.toImageBinaryUsing markFGPixel diffs
+    !baseMask = I.makeImageR VS (640, 480) (const $ PixelX $ I.Bit 0)
+    !mask     = I.superimpose (l', t') faceMask baseMask
+
+    markFGPixel :: Pixel RGBA Double -> Bool
+    markFGPixel diffPixel = or $ liftA2 (>) (diffPixel - diffMean) ((1.5 *) . sqrt <$> diffVariance)
+
+    pickPixels :: (Int, Int) -> Pixel X Bit -> Pixel RGBA Double -> Pixel RGBA Double
+    pickPixels (x, y) maskPixel ogPixel
+      | I.isOn maskPixel = ogPixel
+      | otherwise        = I.index newbg (x, y)
+
+-- | Given a hip image, return the mean and variance of the pixels in the image outside
+--   given box.
 getStats :: Array arr RGBA Double
          => Int -> Int -> Int -> Int -> Image arr RGBA Double -> (Pixel RGBA Double, Pixel RGBA Double)
 getStats left right top bottom img = (means, vars)
   where
     means = (/ pixelsOutside) <$> sums
-    vars  = liftPx2 (-) meansSquared (means * means)
+    vars  = liftA2 (-) meansSquared (means * means)
 
     sums          = sumOutside img
     sumsSquared   = sumOutside $ I.zipWith (*) img img
@@ -162,6 +167,3 @@ getStats left right top bottom img = (means, vars)
     accIfOutside acc (x, y) pixel
       | left <= x && x <= right && top <= y && y <= bottom = acc
       | otherwise                                          = acc + pixel
-
-getPrincipalBox :: [DetectedObject] -> DetectedObject
-getPrincipalBox = head
