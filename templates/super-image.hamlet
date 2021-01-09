@@ -22,3 +22,48 @@
                 <div .page-header>
                     <h2>Image Super Resolution
                     <p>
+                        The <a href="https://arxiv.org/abs/1609.05158">super resolution</a>
+                        network performs upsampling on the greyscale channel of a YCbCr image; 
+                        the image is reconstructed by upscaling the other channels (Cb, the "blue difference",
+                        and Cr, the "red difference") using a method such as bicubic interpolation. 
+                        It takes a 224x224 image as input, and produces an image of size 672x672. The 
+                        result is a sharper image than other upsampling algorithms.
+                    <h3>Instructions
+                    <p>
+                        Upload an image of size 224x224. Once the image has been processed,
+                        a slider will appear with the original image on the right and the
+                        upsampled image on the left, visualising the difference.
+                    <h3>Network Overview
+                    <p>
+                        TinyYOLOv2 is composed almost entirely of convolution layers with the leaky relu 
+                        activation function, followed by a pooling layer. The approach taken is to divide 
+                        the image into a 13x13 grid, where each square is able to predict 5 bounding boxes
+                        for an element present inside the grid.
+                        <pre>
+                            <code .language-haskell>
+                                \type SuperResolution
+                                \  = Network
+                                \     '[ Convolution 'WithBias ('Padding 2 2 2 2) 1 64 5 5 1 1
+                                \      , Lift (LoadActivation Relu)
+                                \      , Convolution 'WithBias ('Padding 1 1 1 1) 64 64 3 3 1 1
+                                \      , Lift (LoadActivation Relu)
+                                \      , Convolution 'WithBias ('Padding 1 1 1 1) 64 32 3 3 1 1
+                                \      , Lift (LoadActivation Relu)
+                                \      , Convolution 'WithBias ('Padding 1 1 1 1) 32 9 3 3 1 1
+                                \      , Lift (LoadActivation Reshape) 
+                                \      , Transpose 4 ('D4 3 3 224 224) ('D4 224 3 224 3)
+                                \      , Lift (LoadActivation Reshape)
+                                \      ]
+                                \     '[ 'D3 224 224 1
+                                \      , 'D3 224 224 64
+                                \      , 'D3 224 224 64
+                                \      , 'D3 224 224 64
+                                \      , 'D3 224 224 64
+                                \      , 'D3 224 224 32
+                                \      , 'D3 224 224 32
+                                \      , 'D3 224 224 9
+                                \      , 'D4 3 3 224 224
+                                \      , 'D4 224 3 224 3
+                                \      , 'D3 672 672 1
+                                \      ]
+                        

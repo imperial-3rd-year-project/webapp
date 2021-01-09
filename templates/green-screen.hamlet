@@ -21,5 +21,20 @@
         <div .row>
             <div .col-lg-12>
                 <div .page-header>
-                    <h2>Background Replacement
+                    <h2>Static Background Replacement for a Human Subject
                     <p>
+                        This demonstration shows how Grenade can be utilised
+                        in the context of a larger program. After capturing the
+                        reference background, the captured image is run through TinyYOLOv2 
+                        to detect a human subject in the image. The
+                        <a href="https://hackage.haskell.org/package/hip">Haskell Image Processing</a>
+                        library (HIP) is used to compare the reference background and the captured image.
+                        Pixels outside of the bounding box given by TinyYOLOv2 are used to estimate 
+                        perturbations in the background due to, for example, lighting changes.
+                    <h3>Instructions
+                    <p>
+                        Remove any foreground elements and capture a background to be used as a reference.
+                        The background image will be captured after 5 seconds. Upload a new image to use 
+                        as the background. Then, capture an image with a human positioned near the center - 
+                        if a person is detected, then you should see a static picture of the person in 
+                        front of your new background.

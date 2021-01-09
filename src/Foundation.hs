@@ -86,8 +86,6 @@ instance Yesod App where
 
     defaultLayout :: Widget -> Handler Html
     defaultLayout widget = do
-        master <- getYesod
-
         mcurrentRoute <- getCurrentRoute
 
         -- Define the menu items of the header.

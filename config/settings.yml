@@ -25,5 +25,4 @@ ip-from-header: "_env:YESOD_IP_FROM_HEADER:false"
 # mutable-static: false
 # skip-combining: false
 
-copyright: Insert copyright statement here
 #analytics: UA-YOURCODE
