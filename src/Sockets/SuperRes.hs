@@ -5,52 +5,61 @@
 
 module Sockets.SuperRes where
 
-import qualified Data.ByteString.Base64 as B
+import           Control.Concurrent           (readMVar)
+import qualified Data.ByteString              as BS
+import qualified Data.ByteString.Base64       as B
+import qualified Data.ByteString.Lazy         as BSL
+import           Data.Proxy                   (Proxy)
+import qualified Data.Text                    as T
+import           Graphics.Image               hiding (map)
 import           Grenade
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
-import qualified Numeric.LinearAlgebra as LA
+import qualified Network.WebSockets           as WS
+import qualified Numeric.LinearAlgebra        as LA
 import qualified Numeric.LinearAlgebra.Static as H
-import qualified Network.WebSockets as WS
+import           Sockets.Types
 
-import           Graphics.Image hiding (map)
-import Debug.Trace
+data SuperResProcessor = SuperResProcessor
 
-processWithSuperRes :: WS.Connection -> SuperResolution -> IO ()
-processWithSuperRes site super = do
-  (WS.Text bs _) <- WS.receiveDataMessage site
-  print $ BSL.length bs
-  img <- createImage (BSL.toStrict bs)
-  let imgYCbCr          = toImageYCbCr img
-      imgY0             = map (\(PixelYCbCr y _ _ ) -> y ) . concat . toLists $ imgYCbCr
-      imgCb             = map (map (\(PixelYCbCr _ cb _) -> cb)) . toLists $ imgYCbCr
-      imgCr             = map (map (\(PixelYCbCr _ _ cr) -> cr)) . toLists $ imgYCbCr
-      (input, cbs, crs) = (S3D (H.fromList imgY0), imgCb, imgCr)
-      out               = runNet super input
-      processed         = processHighResImage out cbs crs
-      outputBs          = B.encode (BSL.toStrict (encode OutputJPG [] processed))
-  print $ BS.length outputBs
-  WS.sendTextData site outputBs
+instance HandlesImage SuperResProcessor where
+  handleImage _ stateref socket = do
+    WS.Text imageBS _     <- WS.receiveDataMessage socket
+    state                 <- readMVar stateref
+    (imgY0, imgCb, imgCr) <- either fail return $ preprocessImageSuperRes $ BSL.toStrict imageBS
+    WS.sendTextData socket $ postProcessSuperRes imgCb imgCr
+                           $ runNet (superres state) imgY0
+  matchImageProcessor = matchSuperResProcessor
+  getImageMsgFormat   = getSuperResMsgFormat
 
-processHighResImage :: S ('D3 672 672 1) -> [[Double]] -> [[Double]] -> Image VS RGBA Double
-processHighResImage (S3D m) cbs crs = do
-  let m'  = LA.toLists $ H.extract m      :: [[Double]]
-      m'' = map (map PixelX) m'           :: [[Pixel X Double]]
-      img = fromLists m''                 :: Image VS X Double
+matchSuperResProcessor :: Proxy SuperResProcessor -> T.Text -> Maybe SuperResProcessor
+matchSuperResProcessor _ proc
+  | proc == "SUPERRES" = Just SuperResProcessor
+  | otherwise          = Nothing
 
-      imgBs  = fromLists $ map (map PixelX) cbs :: Image VS X Double
-      imgRs  = fromLists $ map (map PixelX) crs :: Image VS X Double
+getSuperResMsgFormat :: Proxy SuperResProcessor -> String
+getSuperResMsgFormat = const "SUPERRES"
 
-      imgBs' = resize Bilinear Edge (672, 672) imgBs :: Image VS X Double
-      imgRs' = resize Bilinear Edge (672, 672) imgRs :: Image VS X Double
+preprocessImageSuperRes :: BS.ByteString -> Either String (S ('D3 224 224 1), [[Double]], [[Double]])
+preprocessImageSuperRes bs = preprocess <$> (B.decode bs >>= decode JPG)
+  where
+    preprocess :: Image VS RGBA Double -> (S ('D3 224 224 1), [[Double]], [[Double]])
+    preprocess image = (imgY0, imgCb, imgCr)
+      where
+        imgYCbCr = toImageYCbCr image
+        imgY0    = S3D . H.fromList . map (\(PixelYCbCr y _ _ ) -> y ) . concat . toLists $ imgYCbCr
+        imgCb    = map (map (\(PixelYCbCr _ cb _) -> cb)) . toLists $ imgYCbCr
+        imgCr    = map (map (\(PixelYCbCr _ _ cr) -> cr)) . toLists $ imgYCbCr
 
-      finalImg = fromImagesX [(LumaYCbCr, img), (CBlueYCbCr, imgBs'), (CRedYCbCr, imgRs')] :: Image VS YCbCr Double
-   in toImageRGBA finalImg
+postProcessSuperRes :: [[Double]] -> [[Double]] -> S ('D3 672 672 1) -> BS.ByteString
+postProcessSuperRes cbs crs (S3D m) = B.encode (BSL.toStrict (encode OutputJPG [] (toImageRGBA finalImg)))
+  where
+    m'  = LA.toLists $ H.extract m      :: [[Double]]
+    m'' = map (map PixelX) m'           :: [[Pixel X Double]]
+    img = fromLists m''                 :: Image VS X Double
 
-createImage :: BS.ByteString -> IO (Image VS RGBA Double)
-createImage bs =
-  case B.decode bs of
-    Left err -> print err >> undefined
-    Right decoded -> case decode JPG decoded of
-                       Left err -> print err >> undefined
-                       Right img -> return img
+    imgBs = fromLists $ map (map PixelX) cbs :: Image VS X Double
+    imgRs = fromLists $ map (map PixelX) crs :: Image VS X Double
+
+    imgBs' = resize Bilinear Edge (672, 672) imgBs :: Image VS X Double
+    imgRs' = resize Bilinear Edge (672, 672) imgRs :: Image VS X Double
+
+    finalImg = fromImagesX [(LumaYCbCr, img), (CBlueYCbCr, imgBs'), (CRedYCbCr, imgRs')] :: Image VS YCbCr Double

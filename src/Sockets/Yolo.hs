@@ -4,107 +4,93 @@
 
 module Sockets.Yolo where
 
-import qualified Data.Vector.Storable as S
-import           Data.Word8
-import           Grenade
-import qualified Data.ByteString.Lazy as BSL
-import qualified Numeric.LinearAlgebra.Static as H
-import qualified Data.Array as A
-import qualified Network.WebSockets as WS
-import qualified Data.Text as T
-import           Sockets.Utils
-
-import           Sockets.Types
-import           Control.Concurrent (MVar, modifyMVar_, forkIO)
-import           Grenade.Utils.PascalVoc
-import           Control.Monad (forM_)
-
-import qualified Graphics.Capture.V4L2.Device as Device
+import           Control.Concurrent               (MVar, modifyMVar_, forkIO, readMVar)
+import           Control.Monad                    (forM_)
+import qualified Data.ByteString                  as BS
+import qualified Data.ByteString.Lazy             as BSL
+import qualified Data.Vector.Storable             as S
+import           Data.Proxy                       (Proxy)
+import qualified Data.Text                        as T
+import           Data.Word8                       (Word8)
+import qualified Graphics.Capture.V4L2.Device     as Device
 import           Graphics.Display.ConversionUtils (resize)
+import           Grenade
+import           Grenade.Utils.PascalVoc          (DetectedObject, processOutput)
+import qualified Network.WebSockets               as WS
+import qualified Numeric.LinearAlgebra.Static     as H
+import           Sockets.Types
+import           Sockets.Webcam                   (closeWebcam)
 
-enableCaptureWithYolo :: WS.Connection -> MVar ServerState -> IO ()
-enableCaptureWithYolo _ state = do
-  let offset' = (112, 32) :: (Double, Double)
-  modifyMVar_ state $ \s -> return s {offset = Just offset', imgProc = Just Yolo}
-  pure ()
+data YoloProcessor = YoloProcessor
 
-captureWithYolo :: (Double, Double)
-                  -> S.Vector Word8
-                  -> WS.Connection
-                  -> TinyYoloV2
-                  -> MVar ServerState
-                  -> IO ()
-captureWithYolo (x, y) v conn net mstate = do
-  let v' = resize (floor x, floor y) Device.v4l2resolution (416, 416) v
-  modifyMVar_ mstate closeWebcam
+instance HandlesImage YoloProcessor where
+  handleImage _ stateref socket = do
+    WS.Binary imageBS <- WS.receiveDataMessage socket
+    state             <- readMVar stateref
+    sendYoloOutput socket $ postProcessYolo False
+                          $ runNet (yolo state)
+                          $ preprocessImageYolo (BSL.toStrict imageBS)
+  matchImageProcessor = matchYoloProcessor
+  getImageMsgFormat   = getYoloMsgFormat
+
+instance HandlesCapture YoloProcessor where
+  getCallback _ _ _     = return captureWithYolo
+  matchCaptureProcessor = matchYoloProcessor
+  getCaptureMsgFormat   = getYoloMsgFormat
+
+matchYoloProcessor :: Proxy YoloProcessor -> T.Text -> Maybe YoloProcessor
+matchYoloProcessor _ proc
+  | proc == "YOLO" = Just YoloProcessor
+  | otherwise      = Nothing
+
+getYoloMsgFormat :: Proxy YoloProcessor -> String
+getYoloMsgFormat = const "YOLO"
+
+preprocessWebcamYolo :: S.Vector Word8 -> S ('D3 416 416 3)
+preprocessWebcamYolo v = S3D (H.build gen)
+  where
+    gen :: Double -> Double -> Double
+    gen i j = fromIntegral (v S.! x) / 255
+      where
+        channel = floor (i / 416)
+        row     = floor i - (channel * 416)
+        x       = ((row * 416) + floor j) * 3 + channel
+
+preprocessImageYolo :: BS.ByteString -> S ('D3 416 416 3)
+preprocessImageYolo bs = S3D (H.build gen)
+  where
+    gen :: Double -> Double -> Double
+    gen i j = fromIntegral (BS.index bs x) / 255
+      where
+        channel = floor (i / 416)
+        row     = floor i - (channel * 416)
+        x       = ((row * 416) + floor j) * 4 + channel
+
+captureWithYolo :: S.Vector Word8 -> MVar ServerState -> WS.Connection -> IO ()
+captureWithYolo imageV stateref socket = do
+  modifyMVar_ stateref closeWebcam
   _ <- forkIO $ do
-    let input = preprocessYolo' v'
-    boxes <- runYolo input net
-    print boxes
-    let offsetW = (640 - 416) `div` 2
-        offsetH = (480 - 416) `div` 2
-    WS.sendTextData conn ("BEGIN YOLO" :: T.Text)
-    forM_ boxes $ \(l, r, t, b, _, label) -> do
-      WS.sendTextData conn (T.pack label)
-      WS.sendTextData conn (T.pack $ show $ (416 - l) + offsetW) -- We flip the image on the x axis when drawing.
-      WS.sendTextData conn (T.pack $ show $ (416 - r) + offsetW)
-      WS.sendTextData conn (T.pack $ show $ t + offsetH)
-      WS.sendTextData conn (T.pack $ show $ b + offsetH)
-    WS.sendTextData conn ("END YOLO" :: T.Text)
-  pure ()
+    state <- readMVar stateref
+    sendYoloOutput socket $ postProcessYolo True
+                          $ runNet (yolo state)
+                          $ preprocessWebcamYolo
+                          $ resize (112, 32) Device.v4l2resolution (416, 416) imageV
+  return ()
 
-processWithYolo :: WS.Connection -> TinyYoloV2 -> IO ()
-processWithYolo conn net = do
-  imageData <- WS.receiveDataMessage conn :: IO WS.DataMessage
-  let (WS.Binary bs) = imageData
-      decoded        = decodeForYolo bs 1
-  input <- preprocessYolo (A.listArray (0, length decoded - 1) decoded)
-  boxes <- runYolo input net
-  WS.sendTextData conn ("BEGIN YOLO" :: T.Text)
+postProcessYolo :: Bool -> S ('D3 13 13 125) -> [DetectedObject]
+postProcessYolo isFlipped output = flipOnWebcam $ processOutput output 0.3 0.5
+  where
+    flipOnWebcam
+      | isFlipped = map (\(l, r, t, b, c, label) -> (528 - l, 448 - r, t, b, c, label))
+      | otherwise = id
+
+sendYoloOutput :: WS.Connection -> [DetectedObject] -> IO ()
+sendYoloOutput socket boxes = do
+  WS.sendTextData socket ("BEGIN YOLO" :: T.Text)
   forM_ boxes $ \(l, r, t, b, _, label) -> do
-      WS.sendTextData conn (T.pack label)
-      WS.sendTextData conn (T.pack $ show l)
-      WS.sendTextData conn (T.pack $ show r)
-      WS.sendTextData conn (T.pack $ show t)
-      WS.sendTextData conn (T.pack $ show b)
-  WS.sendTextData conn ("END YOLO" :: T.Text)
-
-decodeForYolo :: BSL.ByteString -> Int -> [Double]
-decodeForYolo bs i
-  | BSL.null bs = []
-  | i `mod` 4 == 0  = decodeForYolo (BSL.tail bs) 1
-  | otherwise       = e' : decodeForYolo (BSL.tail bs) (i + 1)
-  where
-    e = fromIntegral $ BSL.head bs :: Int
-    e' = fromIntegral e / 255 :: Double
-
-preprocessYolo :: A.Array Int Double -> IO (S ('D3 416 416 3))
-preprocessYolo pixels = do
-  let mat = H.build buildMat
-  pure $ S3D mat
-  where
-    buildMat :: Double -> Double -> Double
-    buildMat i j = pixels A.! x
-      where
-        chn = floor $ i / 416 :: Int
-        row = i - fromIntegral (chn * 416)
-        x   = floor $ ((row * 416) + j) * 3 + fromIntegral chn
-
-preprocessYolo' :: S.Vector Word8 -> S ('D3 416 416 3)
-preprocessYolo' v = S3D mat
-  where
-    mat = H.build buildMat
-
-    buildMat :: Double -> Double -> Double
-    buildMat i j = e
-      where
-        chn = floor $ i / 416 :: Int
-        row = i - fromIntegral (chn * 416)
-        x   = floor $ ((row * 416) + j) * 3 + fromIntegral chn
-        e   = fromIntegral (v S.! x) / 255
-
-runYolo :: S ('D3 416 416 3) -> TinyYoloV2 -> IO [DetectedObject]
-runYolo input net = do
-  let y = runNet net input
-      boxes = processOutput y 0.3 0.5
-  return boxes
+    WS.sendTextData socket (T.pack label)
+    WS.sendTextData socket (T.pack $ show l)
+    WS.sendTextData socket (T.pack $ show r)
+    WS.sendTextData socket (T.pack $ show t)
+    WS.sendTextData socket (T.pack $ show b)
+  WS.sendTextData socket ("END YOLO" :: T.Text)

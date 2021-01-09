@@ -54,8 +54,6 @@ window.onload = function () {
     addSocketHandler(SOCKET_END_DEVICES, onEndDevices);
     addSocketHandler(SOCKET_RECEIVE_DEVICE, onReceiveDevice);
     
-    addSocketHandler(SOCKET_BEGIN_RESNET, onResBegin);
-    addSocketHandler(SOCKET_END_RESNET, onResEnd);
     addSocketHandler(SOCKET_RECEIVE_RESNET, onResReceive);
     
     addSocketHandler(SOCKET_RECEIVE_WEBCAM_FRAME, onWebcamFrame);
@@ -116,9 +114,9 @@ function openWebcam() {
 
 function closeWebcam() {
     sendMsg(WEBCAM.CLOSE);
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     let webcamCanvas = document.getElementById("canvas");
     let webcamCtx = webcamCanvas.getContext("2d");
+    ctx.fillRect(0, 0, webcamCtx.canvas.width, webcamCanvas.height);
     document.getElementById("webcam-btn").value = "Open Webcam"
     document.getElementById("webcam-btn").onclick = openWebcam;
 }
@@ -127,24 +125,11 @@ function captureImage() {
     document.getElementById("object-label").innerHTML = "I'm trying to work out what I'm looking at, just a moment...";
     webcamPaused = true;
     socket.send('CAPTURE RESNET');
-    socket.send(webSquare.x.toString());
-    socket.send(webSquare.y.toString());
-}
-
-function onResBegin(event, state) {
-    state.fetchingResnet = true;
-    state.resnetCounter = 0;
-    state.isLabel = true;
-}
-
-function onResEnd(event, state) {
-    state.fetchingResnet = false;
-    document.getElementById("object-label").innerHTML = generateObjectSentence(state.recognisedObject.label);
-    state.webcamPaused = false;
+    socket.send("(" + webSquare.x.toString() + "," + webSquare.y.toString() + ")");
 }
 
 function onResReceive(event, state) {
-    state.recognisedObject.label = event.data;
+    document.getElementById("object-label").innerHTML = generateObjectSentence(event.data.toString().substring(7));
 }
 
 function onWebcamFrame(event, state) {
