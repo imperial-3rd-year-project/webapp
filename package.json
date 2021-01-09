@@ -2,7 +2,7 @@
   "name": "webapp",
   "version": "1.0.0",
   "description": "Native wrapper for grenade demos webapp",
-  "main": "electron/main.js",
+  "main": "main.js",
   "directories": {
     "test": "test"
   },
@@ -19,6 +19,9 @@
   "license": "ISC",
   "devDependencies": {
     "electron": "^10.1.6",
+    "url-exist": "^2.0.2"
+  },
+  "dependencies": {
     "url-exist": "^2.0.2"
   }
 }

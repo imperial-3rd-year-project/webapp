@@ -18,8 +18,6 @@ function createWindow () {
       if (exists === true) { 
         mainWindow.loadURL("http://localhost:3000");
         clearInterval(loadSite);
-      } else {
-        console.log("Not loaded!");
       }
     });
   }, 100);
