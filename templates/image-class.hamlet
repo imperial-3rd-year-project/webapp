@@ -38,17 +38,122 @@
                 <div .page-header>
                     <h2>Image Classification with ResNet-18
                     <p>
-                        ResNet18 is a convolutional deep network, capable of detecting 1000 
+                        <a href="https://arxiv.org/abs/1512.03385">ResNet-18</a> is a convolutional deep network, capable of detecting 1000 
                         items. Deeper neural networks are significantly harder to train; to 
-                        overcome this problem, ResNet uses residual blocks. 
-                        One example of such a block is in the following diagram:
-                    <pre>
-                        \                      
-                        \--->[convolution]--->[batch norm]--->[relu]--->[+]--->
-                        \ |----------------------------------------------^
-                        \                     identity
+                        overcome this problem, the ResNet family of networks uses the 
+                        concept of residual blocks.
+                    <h3>Instructions
                     <p>
-                        By skipping some layers in the output of the activation and 
-                        recombining, the network is able to mitigate the effects of
-                        problems associated with deeper networks, such as the 
-                        vanishing gradient problem.
+                        The custom image option allows loading an image from disk, which
+                        will be resized and cropped to fit a 224x224 square. Alternatively,
+                        select the webcam input and drag the selection square over an object.
+                        The feed will pause momentarily while the object is recognised.
+                    <h3>Network Overview
+                    <div #resnetimgcont>
+                        <img src="@{StaticR images_resnet_png}" #resnetimg>
+                    <p>
+                        ResNet-18 is complex compared to the other networks featured in this demonstration.
+                        However, due to the ability to use networks as layers in bigger networks, it is 
+                        possible to break down the larger network into more manageable, smaller, networks,
+                        and by using type parameters, each smaller network can be used repeatedly. The 
+                        overview above shows the structure of a residual block. By skipping some layers 
+                        in the output of the activation and recombining, the network is able to mitigate 
+                        the effects of problems associated with deeper networks, such as the vanishing gradient 
+                        problem.
+                        <pre>
+                            <code .language-haskell>
+                                \type ResNet18BranchRight size channels
+                                \  = Network
+                                \      '[ Convolution 'WithoutBias ('Padding 1 1 1 1) channels channels 3 3 1 1
+                                \       , BatchNorm channels size size 90
+                                \       , Lift (LoadActivation Relu)
+                                \       , Convolution 'WithoutBias ('Padding 1 1 1 1) channels channels 3 3 1 1
+                                \       , BatchNorm channels size size 90
+                                \       ]
+                                \      '[ 'D3 size size channels
+                                \       , 'D3 size size channels
+                                \       , 'D3 size size channels
+                                \       , 'D3 size size channels
+                                \       , 'D3 size size channels
+                                \       , 'D3 size size channels
+                                \       ]
+                                \
+                                \type ResNet18BranchShrinkRight inSize outSize inChannels outChannels
+                                \  = Network
+                                \      '[ Convolution 'WithoutBias ('Padding 1 1 1 1) inChannels outChannels 3 3 2 2
+                                \       , BatchNorm outChannels outSize outSize 90
+                                \       , Lift (LoadActivation Relu)
+                                \       , Convolution 'WithoutBias ('Padding 1 1 1 1) outChannels outChannels 3 3 1 1
+                                \       , BatchNorm outChannels outSize outSize 90
+                                \       ]
+                                \      '[ 'D3 inSize inSize inChannels
+                                \       , 'D3 outSize outSize outChannels
+                                \       , 'D3 outSize outSize outChannels
+                                \       , 'D3 outSize outSize outChannels
+                                \       , 'D3 outSize outSize outChannels
+                                \       , 'D3 outSize outSize outChannels
+                                \       ]
+                                \
+                                \type ResNet18BranchShrinkLeft inSize outSize inChannels outChannels
+                                \  = Network
+                                \      '[ Convolution 'WithoutBias 'NoPadding inChannels outChannels 1 1 2 2
+                                \       , BatchNorm outChannels outSize outSize 90
+                                \       ]
+                                \      '[ 'D3 inSize inSize inChannels
+                                \       , 'D3 outSize outSize outChannels
+                                \       , 'D3 outSize outSize outChannels
+                                \       ]
+                                \
+                                \type ResNet18Block size channels
+                                \  = Network
+                                \      '[ Lift (LoadParallel (Merge (Lift (LoadBypass Trivial)) (ResNet18BranchRight size channels)))
+                                \       , Lift (LoadActivation Relu)
+                                \       ]
+                                \      '[ 'D3 size size channels
+                                \       , 'D3 size size channels
+                                \       , 'D3 size size channels 
+                                \       ]
+                                \
+                                \type ResNet18ShrinkBlock inSize outSize inChannels outChannels
+                                \  = Network
+                                \      '[ Lift (LoadParallel (Merge (ResNet18BranchShrinkLeft inSize outSize inChannels outChannels) 
+                                \                                   (ResNet18BranchShrinkRight inSize outSize inChannels outChannels)))
+                                \       , Lift (LoadActivation Relu)
+                                \       ]
+                                \      '[ 'D3 inSize inSize inChannels, 'D3 outSize outSize outChannels, 'D3 outSize outSize outChannels ]
+                                \
+                                \type ResNet18
+                                \  = Network
+                                \     '[ Convolution 'WithoutBias ('Padding 3 3 3 3) 3 64 7 7 2 2
+                                \      , BatchNorm 64 112 112 90
+                                \      , Lift (LoadActivation Relu)
+                                \      , PaddedPooling ('D3 112 112 64) ('D3 56 56 64) 3 3 2 2 1 1 1 1
+                                \      , ResNet18Block 56 64
+                                \      , ResNet18Block 56 64
+                                \      , ResNet18ShrinkBlock 56 28 64 128
+                                \      , ResNet18Block 28 128
+                                \      , ResNet18ShrinkBlock 28 14 128 256
+                                \      , ResNet18Block 14 256
+                                \      , ResNet18ShrinkBlock 14 7 256 512
+                                \      , ResNet18Block 7 512
+                                \      , Lift (LoadActivation GlobalAvgPool)
+                                \      , Lift (LoadActivation Reshape)
+                                \      , FullyConnected 512 1000
+                                \      ]
+                                \     '[ 'D3 224 224 3
+                                \      , 'D3 112 112 64
+                                \      , 'D3 112 112 64
+                                \      , 'D3 112 112 64
+                                \      , 'D3 56  56  64  -- block 1
+                                \      , 'D3 56  56  64  -- block 2
+                                \      , 'D3 56  56  64  -- block 3
+                                \      , 'D3 28  28  128 -- block 4
+                                \      , 'D3 28  28  128 -- block 5
+                                \      , 'D3 14  14  256 -- block 6
+                                \      , 'D3 14  14  256 -- block 7
+                                \      , 'D3 7   7   512 -- block 8
+                                \      , 'D3 7   7   512
+                                \      , 'D3 1   1   512
+                                \      , 'D1 512
+                                \      , 'D1 1000
+                                \      ]

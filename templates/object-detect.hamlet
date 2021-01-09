@@ -35,5 +35,81 @@
         <div .row>
             <div .col-lg-12>
                 <div .page-header>
-                    <h2>Object Detection with Tiny YOLOv2
+                    <h2>Object Detection with TinyYOLOv2
                     <p>
+                        The <a href="https://pjreddie.com/darknet/yolov2/">YOLO family of networks</a> is designed 
+                        for real-time object detection, able to produce a bounding box for notable features in an image. 
+                        TinyYOLOv2 is a smaller and faster, but less accurate, version of YOLOv2. Trained on the PASCAL VOC dataset,
+                        it can detect 20 classes of objects - most notably, people.
+                    <h3>Instructions
+                    <p>
+                        The custom image option allows loading an image from disk, which will be resized
+                        and cropped to fit a 416x416 square. Alternatively, select the webcam input; the
+                        central 416x416 region will be used as input. The feed will pause and show any detected
+                        features. Press 'New Image' to start the feed again.
+                    <h3>Network Overview
+                    <p>
+                        TinyYOLOv2 is composed almost entirely of convolution layers with the leaky relu 
+                        activation function, followed by a pooling layer. The approach taken is to divide 
+                        the image into a 13x13 grid, where each square is able to predict 5 bounding boxes
+                        for an element present inside the grid.
+                        <pre>
+                            <code .language-haskell>
+                                \type TinyYoloV2 = Network
+                                \  '[ Convolution 'WithBias 'SameUpper 3 16 3 3 1 1
+                                \   , LeakyRelu
+                                \   , Lift (LoadActivation (Pooling 2 2 2 2))
+                                \   
+                                \   , Convolution 'WithBias 'SameUpper 16 32 3 3 1 1
+                                \   , LeakyRelu
+                                \   , Lift (LoadActivation (Pooling 2 2 2 2))
+                                \
+                                \   , Convolution 'WithBias 'SameUpper 32 64 3 3 1 1
+                                \   , LeakyRelu
+                                \   , Lift (LoadActivation (Pooling 2 2 2 2))
+                                \
+                                \   , Convolution 'WithBias 'SameUpper 64 128 3 3 1 1
+                                \   , LeakyRelu
+                                \   , Lift (LoadActivation (Pooling 2 2 2 2))
+                                \
+                                \   , Convolution 'WithBias 'SameUpper 128 256 3 3 1 1
+                                \   , LeakyRelu
+                                \   , Lift (LoadActivation (Pooling 2 2 2 2))
+                                \
+                                \   , Convolution 'WithBias 'SameUpper 256 512 3 3 1 1
+                                \   , LeakyRelu
+                                \   , PaddedPooling ('D3 13 13 512) ('D3 13 13 512) 2 2 1 1 0 0 1 1
+                                \
+                                \   , Convolution 'WithBias 'SameUpper 512 1024 3 3 1 1
+                                \   , LeakyRelu
+                                \
+                                \   , Convolution 'WithBias 'SameUpper 1024 1024 3 3 1 1
+                                \   , LeakyRelu
+                                \
+                                \   , Convolution 'WithBias 'SameUpper 1024 125 1 1 1 1
+                                \   ]
+                                \  '[ 'D3 416 416 3                   -- Input
+                                \   , 'D3 416 416 16, 'D3 416 416 16  -- PaddedConv1, LeakyRelu
+                                \   , 'D3 208 208 16                  -- Pooling1
+                                \
+                                \   , 'D3 208 208 32, 'D3 208 208 32  -- PaddedConv2, LeakyRelu
+                                \   , 'D3 104 104 32                  -- Pooling2
+                                \
+                                \   , 'D3 104 104 64, 'D3 104 104 64  -- PaddedConv3, LeakyRelu
+                                \   , 'D3 52 52 64                    -- Pooling3
+                                \
+                                \   , 'D3 52 52 128, 'D3 52 52 128    -- PaddedConv4, LeakyRelu
+                                \   , 'D3 26 26 128                   -- Pooling4
+                                \
+                                \   , 'D3 26 26 256, 'D3 26 26 256    -- PaddedConv5, LeakyRelu
+                                \   , 'D3 13 13 256                   -- Pooling5
+                                \
+                                \   , 'D3 13 13 512, 'D3 13 13 512    -- PaddedConv6, LeakyRelu
+                                \   , 'D3 13 13 512                   -- PaddedPooling6
+                                \
+                                \   , 'D3 13 13 1024, 'D3 13 13 1024  -- PaddedConv7, LeakyRelu
+                                \
+                                \   , 'D3 13 13 1024, 'D3 13 13 1024  -- PaddedConv8, LeakyRelu
+                                \
+                                \   , 'D3 13 13 125                   -- BiasConv
+                                \   ]
