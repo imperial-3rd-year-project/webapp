@@ -13,3 +13,4 @@ sh ./run-app.sh
 
 - npm
 - stack
+- libavdevice58

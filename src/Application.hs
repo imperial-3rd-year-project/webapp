@@ -44,7 +44,6 @@ import Handler.Common
 import Handler.Home
 import Handler.Mnist
 import Handler.MnistResponse
-import Handler.Tutorial
 import Handler.ImageClass
 import Handler.ObjectDetect
 import Handler.SuperImage

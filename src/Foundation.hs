@@ -103,11 +103,6 @@ instance Yesod App where
                     , menuItemAccessCallback = True
                     },
                 NavbarLeft $ MenuItem
-                    { menuItemLabel = "Tutorial"
-                    , menuItemRoute = TutorialR
-                    , menuItemAccessCallback = True
-                    },
-                NavbarLeft $ MenuItem
                     { menuItemLabel = "Image Classification"
                     , menuItemRoute = ImageClassR
                     , menuItemAccessCallback = True

@@ -69,7 +69,7 @@ dispatch conn state msgType = do
     Capture Yolo        -> enableCaptureWithYolo conn state
     Capture SuperRes    -> sendErr "Cannot apply super-resolution to webcam" conn
     Capture GreenScreen -> enableGreenScreen conn state
-    Compile             -> compileCode conn state
+    Compile             -> sendErr "Compilation is not supported!" conn
     Error errMsg        -> sendErr errMsg conn
 
 handle :: T.Text -> WebsiteConn -> MVar ServerState -> IO ()
@@ -117,36 +117,3 @@ sendByteString mstate v = do
 
 setWebsiteConn :: WS.Connection -> ServerState -> ServerState
 setWebsiteConn site s = s { conn = Just (WebsiteConn site) }
-
-fromHandleProducer :: IO.Handle -> P.Producer T.Text IO ()
-fromHandleProducer h = go
-  where
-    go = do
-      txt <- P.liftIO (TIO.hGetChunk h)
-      if T.null txt
-        then return ()
-        else do
-          P.yield txt
-          go
-          go
-
-sendToConnConsumer :: WS.Connection -> T.Text -> P.Consumer T.Text IO ()
-sendToConnConsumer conn text = P.liftIO (WS.sendTextData conn text)
-
-sendOutput :: IO.Handle -> WS.Connection -> IO ()
-sendOutput h conn = flip finally (IO.hClose h) $ do
-  P.runEffect $ do
-    fromHandleProducer h P.>-> P.for P.cat (sendToConnConsumer conn)
-
-compileCode :: WS.Connection -> MVar ServerState -> IO ()
-compileCode conn mstate = do
-  code <- WS.receiveData conn :: IO T.Text
-  cwd <- getCurrentDirectory
-  let cwd' = cwd ++ "/grenade-tutorials"
-  let tmpFile = cwd' ++ "/src/circle-user.hs"
-  writeFile tmpFile (T.unpack code)
-  (_, Just hout, Just herr , _) <- createProcess (shell "stack run circle-user"){ cwd = Just cwd', std_out = CreatePipe, std_err = CreatePipe}
-  a1 <- async $ sendOutput hout conn
-  a2 <- async $ sendOutput herr conn
-  waitBoth a1 a2
-  pure ()

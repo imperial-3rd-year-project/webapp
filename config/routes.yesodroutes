@@ -12,8 +12,6 @@
 
 /mnist MnistR GET 
 
-/tutorial TutorialR GET
-
 /imageclass ImageClassR GET
 
 /objectdetect ObjectDetectR GET
