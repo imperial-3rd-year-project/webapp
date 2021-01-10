@@ -26,20 +26,41 @@ window.onload = function () {
             dataURL = reader.result;
             document.getElementById("process-message").innerHTML = "Processing image...";
 
-            socket.send('IMAGE SUPERRES');
-            const originalImage = dataURL;
-            base64String = originalImage.split("base64,")[1];
-            header = originalImage.split("base64,")[0];
-            socket.send(base64String);
-            console.log(base64String)
-            console.log(typeof base64String)
-            document.getElementById("uploaded-image").src = originalImage;
-            document.getElementById("img-comp-container-uploaded").hidden = false;
-            document.getElementById("img-comp-container-processed").hidden = true;
-            const sliders = document.getElementsByClassName("img-comp-slider");
-            while (sliders.length > 0) {
-                sliders[0].remove();
-            }
+            let offscreen = document.createElement("canvas");
+            offscreen.width = 224;
+            offscreen.height = 224;
+            let img = new Image();
+            let ctx = offscreen.getContext('2d');
+            img.onload = function () {
+                console.log(img.width, img.height);
+                if (img.width > img.height) {
+                    let w = img.width * (224 / img.height);
+                    ctx.drawImage(img, 0, 0, w, 224);
+                } else {
+                    let h = img.height * (224 / img.width);
+                    ctx.drawImage(img, 0, 0, 224, h);
+                }
+
+                socket.send('IMAGE SUPERRES');
+                const originalImage = offscreen.toDataURL("image/jpeg");
+                base64String = originalImage.split("base64,")[1];
+                header = originalImage.split("base64,")[0];
+                socket.send(base64String);
+                console.log(base64String)
+                console.log(typeof base64String)
+                document.getElementById("uploaded-image").src = originalImage;
+                document.getElementById("img-comp-container-uploaded").hidden = false;
+                document.getElementById("img-comp-container-processed").hidden = true;
+                const sliders = document.getElementsByClassName("img-comp-slider");
+                const dividers = document.getElementsByClassName("img-comp-divider");
+                while (sliders.length > 0) {
+                    sliders[0].remove();
+                }
+                while (dividers.length > 0) {
+                    dividers[0].remove();
+                }
+            };
+            img.src = dataURL;
         };
         reader.readAsDataURL(input.files[0]);
     };
@@ -63,14 +84,27 @@ function initComparisons() {
         h = SCALED_SIZE;
         /* Set the width of the img element to 50%: */
         img.style.width = (w / 2) + "px";
+        
+        /* Show labels */
+        document.getElementById("labels").style.display = "block";
+        
         /* Create slider: */
         slider = document.createElement("DIV");
         slider.setAttribute("class", "img-comp-slider");
+        
+        /* Create divider */
+        divider = document.createElement("DIV");
+        divider.setAttribute("class", "img-comp-divider");
+        
         /* Insert slider */
+        img.parentElement.insertBefore(divider, img);
         img.parentElement.insertBefore(slider, img);
         /* Position the slider in the middle: */
         slider.style.top = (h / 2) - (slider.offsetHeight / 2) + "px";
         slider.style.left = (w / 2) - (slider.offsetWidth / 2) + "px";
+        
+        divider.style.top = (h / 2) - (divider.offsetHeight / 2) + "px";
+        divider.style.left = (w / 2) - (divider.offsetWidth / 2) + "px";
         /* Execute a function when the mouse button is pressed: */
         slider.addEventListener("mousedown", slideReady);
         /* And another function when the mouse button is released: */
@@ -125,6 +159,7 @@ function initComparisons() {
             img.style.width = x + "px";
             /* Position the slider: */
             slider.style.left = img.offsetWidth - (slider.offsetWidth / 2) + "px";
+            divider.style.left = img.offsetWidth - (divider.offsetWidth / 2) + "px";
         }
     }
 }

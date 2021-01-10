@@ -110,19 +110,24 @@ function openWebcam() {
     sendMsg(WEBCAM.OPEN, device);
     document.getElementById("webcam-btn").value = "Close Webcam"
     document.getElementById("webcam-btn").onclick = closeWebcam;
+    document.getElementById("capture-btn").style.display = "inline-block";
 }
 
 function closeWebcam() {
     sendMsg(WEBCAM.CLOSE);
     let webcamCanvas = document.getElementById("canvas");
     let webcamCtx = webcamCanvas.getContext("2d");
-    ctx.fillRect(0, 0, webcamCtx.canvas.width, webcamCanvas.height);
+    webcamCtx.fillRect(0, 0, webcamCanvas.width, webcamCanvas.height);
     document.getElementById("webcam-btn").value = "Open Webcam"
     document.getElementById("webcam-btn").onclick = openWebcam;
+    document.getElementById("capture-btn").style.display = "none";
+    document.getElementById("object-label").innerHTML = "";
 }
 
 function captureImage() {
     document.getElementById("object-label").innerHTML = "I'm trying to work out what I'm looking at, just a moment...";
+    document.getElementById("webcam-btn").disabled = true;
+    document.getElementById("capture-btn").disabled = true;
     webcamPaused = true;
     socket.send('CAPTURE RESNET');
     socket.send("(" + webSquare.x.toString() + "," + webSquare.y.toString() + ")");
@@ -130,6 +135,8 @@ function captureImage() {
 
 function onResReceive(event, state) {
     document.getElementById("object-label").innerHTML = generateObjectSentence(event.data.toString().substring(7));
+    document.getElementById("webcam-btn").disabled = false;
+    document.getElementById("capture-btn").disabled = false;
 }
 
 function onWebcamFrame(event, state) {

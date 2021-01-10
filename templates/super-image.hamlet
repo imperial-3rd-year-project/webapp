@@ -8,7 +8,11 @@
                     <img src="" width="672" height="672" #uploaded-image>
                 <div #img-comp-container-processed .img-comp-img .img-comp-overlay hidden>
                     <img src="" width="672" height="672" #processed-image>
-
+            <div #labels style="display: none;">
+                <span style="margin-right: 25%;">
+                    Super resolution
+                <span>
+                    Naive upscaling
             <div>
                 <input type="file" accept='image/*' title=" " #upload-image-input style="display:none;">
                 <label .btn .btn-primary for="upload-image-input">Upload
@@ -30,15 +34,15 @@
                         result is a sharper image than other upsampling algorithms.
                     <h3>Instructions
                     <p>
-                        Upload an image of size 224x224. Once the image has been processed,
-                        a slider will appear with the original image on the right and the
+                        Upload an image, ideally of size 224x224 (otherwise, the image will first be resized). 
+                        Once the image has been processed, a slider will appear with the original image on the right and the
                         upsampled image on the left, visualising the difference.
                     <h3>Network Overview
                     <p>
-                        TinyYOLOv2 is composed almost entirely of convolution layers with the leaky relu 
-                        activation function, followed by a pooling layer. The approach taken is to divide 
-                        the image into a 13x13 grid, where each square is able to predict 5 bounding boxes
-                        for an element present inside the grid.
+                        The Super Resolution network utilises 4 dimensional tensors to extract and 
+                        encode the extra information which is introduced for each pixel in the original 
+                        image. This information is produced by a series of convolutions, which aim to 
+                        detect local features.
                         <pre>
                             <code .language-haskell>
                                 \type SuperResolution

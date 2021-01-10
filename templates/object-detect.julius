@@ -107,6 +107,8 @@ function closeWebcam() {
 function onYoloEnd(event, state) {
     state.fetchingYolo = false;
     captured = false;
+    document.getElementById("webcam-btn").disabled = false;
+    document.getElementById("capture-btn").disabled = false;
     if (state.boundingBoxes.length == 0) {
         document.getElementById("object-label").innerHTML = 'No objects detected.';
     } else {
@@ -164,6 +166,7 @@ function captureImage() {
     sendMsg(CAPTURE.YOLO);
     captured = true;
     document.getElementById("capture-btn").disabled = true;
+    document.getElementById("webcam-btn").disabled = true;
     displayWaitMessage(webcamCanvas, webcamCtx);
 }
 

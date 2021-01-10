@@ -34,6 +34,10 @@ const SOCKET_RECEIVE_WEBCAM_FRAME = function (event, state) {
     return true;
 };
 
+const SOCKET_END_GS = function (event, state) {
+    return event.data.toString() === "END GS";
+};
+
 let handlers = {};
 let state = {};
 let socket;
