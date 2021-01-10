@@ -29,6 +29,7 @@ window.onload = function () {
     addSocketHandler(SOCKET_END_YOLO, onYoloEnd);
     addSocketHandler(SOCKET_RECEIVE_YOLO, onYoloReceive);
     
+    addSocketHandler(SOCKET_END_GS, onGreenScreenEnd);
     addSocketHandler(SOCKET_RECEIVE_WEBCAM_FRAME, onWebcamFrame);
     setSocketHandler();
 
@@ -60,6 +61,11 @@ window.onload = function () {
     };
 
 };
+
+function onGreenScreenEnd(event, state) {
+    document.getElementById('capture-btn').disabled = false;
+    alert(document.getElementById('capture-btn').disabled);
+}
 
 function onYoloEnd(event, state) {
     state.fetchingYolo = false;
@@ -98,11 +104,14 @@ function captureBackgroundImage() {
     const captureBtn = document.getElementById('capture-btn');
     captureBtn.disabled = true;
     captureBtn.value = "5";
+    document.getElementById('webcam-btn').disabled = true;
     setTimeout(function () {        
         sendMsg(CAPTURE.GREENSCREEN);
         captureBtn.value = "Capture";
         captureBtn.onclick = captureImage;
         captureBtn.disabled = false;
+
+        document.getElementById('webcam-btn').disabled = false;
     }, TIMER);
 
     setTimeout(function () {
@@ -124,6 +133,9 @@ function captureImage() {
     const captureBtn = document.getElementById('capture-btn');
     captureBtn.value = "Reset";
     captureBtn.onclick = reset;
+    
+    captureBtn.disabled = true;
+    document.getElementById('webcam-btn').disabled = true;
 }
 
 function reset() {
@@ -135,4 +147,7 @@ function reset() {
     const captureBtn = document.getElementById('capture-btn');
     captureBtn.value = "Capture Background";
     captureBtn.onclick = captureBackgroundImage;
+
+    document.getElementById('upload-image-btn').disabled = false;
+    document.getElementById('webcam-btn').disabled = false;
 }

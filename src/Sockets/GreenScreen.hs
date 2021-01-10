@@ -63,7 +63,8 @@ captureWithGS imageV stateref socket = do
                   sendGSOutput socket imageBS $ postProcessGreenScreen imageV oldbg (newBg state)
                                               $ runNet (yolo state)
                                               $ preprocessWebcamYolo
-                                              $ resize (112, 32) Device.v4l2resolution (416, 416) imageV)
+                                              $ resize (112, 32) Device.v4l2resolution (416, 416) imageV
+                  WS.sendTextData socket ("END GS" :: T.Text))
     (refBg state)
 
 createImageFromImage :: BS.ByteString -> Image VS RGBA Double

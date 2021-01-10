@@ -6,8 +6,12 @@
 }
 
 #upload-image-div {
-    margin-top: 24px;
-    margin-bottom: 12px;
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+#capture-btn {
+  display: none;
 }
 
 #object-label {
@@ -17,7 +21,7 @@
 }
 
 #webcam-input-div {
-    display: none;
+  display: none;
 }
 
 #webcam-select select {

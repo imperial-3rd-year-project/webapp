@@ -12,7 +12,7 @@
                 <div>
                     <input type="button" class="btn btn-success" value="Capture Background" id="capture-btn" onclick="captureBackgroundImage()">
                 <div>
-                    <label .btn .btn-primary for="upload-image-input">Upload New Background
+                    <label .btn .btn-primary for="upload-image-input" #upload-image-btn>Upload New Background
                     <input type="file" accept='image/*' title=" " #upload-image-input style="display:none;">
 
 
