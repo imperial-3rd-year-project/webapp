@@ -64,7 +64,6 @@ window.onload = function () {
 
 function onGreenScreenEnd(event, state) {
     document.getElementById('capture-btn').disabled = false;
-    alert(document.getElementById('capture-btn').disabled);
 }
 
 function onYoloEnd(event, state) {

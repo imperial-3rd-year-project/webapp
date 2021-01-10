@@ -63,8 +63,7 @@ captureWithGS imageV stateref socket = do
                   sendGSOutput socket imageBS $ postProcessGreenScreen imageV oldbg (newBg state)
                                               $ runNet (yolo state)
                                               $ preprocessWebcamYolo
-                                              $ resize (112, 32) Device.v4l2resolution (416, 416) imageV
-                  WS.sendTextData socket ("END GS" :: T.Text))
+                                              $ resize (112, 32) Device.v4l2resolution (416, 416) imageV)
     (refBg state)
 
 createImageFromImage :: BS.ByteString -> Image VS RGBA Double
@@ -102,6 +101,7 @@ sendGSOutput socket imageBS Nothing = do
   WS.sendBinaryData socket imageBS
 sendGSOutput socket _ (Just image)  = do
   WS.sendBinaryData socket $ fst $ BS.unfoldrN (640 * 480 * 3) gen 0
+  WS.sendTextData socket ("END GS" :: T.Text)
   where
     gen :: Int -> Maybe (Word8, Int)
     gen i = Just (value, i + 1)
