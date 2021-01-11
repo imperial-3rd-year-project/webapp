@@ -5,8 +5,8 @@ const urlExist = require("url-exist");
 function createWindow () {
   const mainWindow = new BrowserWindow();
   mainWindow.maximize();
-  mainWindow.loadFile("electron/index.html");
-  const child  = spawn(".stack-work/dist/x86_64-linux-tinfo6/Cabal-3.0.1.0/build/web-app/web-app");
+  mainWindow.loadFile("index.html");
+  const child  = spawn("bin/web-app");
   child.stderr.on('data', (data) => { console.error(`stderr: ${data}`); });
   child.stdout.on('data', (data) => { console.log(`data: ${data}`);});
   const check = async () => {
@@ -18,8 +18,6 @@ function createWindow () {
       if (exists === true) { 
         mainWindow.loadURL("http://localhost:3000");
         clearInterval(loadSite);
-      } else {
-        console.log("Not loaded!");
       }
     });
   }, 100);
