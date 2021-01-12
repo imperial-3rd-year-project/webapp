@@ -99,6 +99,7 @@ postProcessGreenScreen imageV oldbg newbg output
 sendGSOutput :: WS.Connection -> BS.ByteString -> Maybe (Image VS RGBA Double) -> IO ()
 sendGSOutput socket imageBS Nothing = do
   WS.sendBinaryData socket imageBS
+  WS.sendTextData socket ("END GS" :: T.Text)
 sendGSOutput socket _ (Just image)  = do
   WS.sendBinaryData socket $ fst $ BS.unfoldrN (640 * 480 * 3) gen 0
   WS.sendTextData socket ("END GS" :: T.Text)
